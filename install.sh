@@ -103,7 +103,7 @@ open "$DEST"
 
 # ── Write summary file and open it ───────────────────────────────────────────
 if [[ "$PRIMARY_LANG" == "de" ]]; then
-    SUMMARY="$HOME/Desktop/MediaKeyControl – Info.txt"
+    SUMMARY="$HOME/Desktop/MediaKeyControl Info.txt"
     cat > "$SUMMARY" << EOF
 MediaKeyControl – Installiert
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -124,7 +124,7 @@ Erster Start:
 Die App erscheint in der Menüleiste (⌨ Symbol)
 EOF
 else
-    SUMMARY="$HOME/Desktop/MediaKeyControl – Info.txt"
+    SUMMARY="$HOME/Desktop/MediaKeyControl Info.txt"
     cat > "$SUMMARY" << EOF
 MediaKeyControl – Installed
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -148,7 +148,7 @@ fi
 
 open "$SUMMARY"
 
-# ── Self-close Terminal window ────────────────────────────────────────────────
-(sleep 0.5 && osascript -e 'tell application "Terminal" to close front window') &
+# ── Self-close Terminal window (delay gives TextEdit time to open) ────────────
+(sleep 2 && osascript -e 'tell application "Terminal" to close front window') &
 disown
 exit 0
