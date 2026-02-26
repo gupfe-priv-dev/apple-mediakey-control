@@ -9,7 +9,20 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="MediaKeyControl"
 APP="$DIR/$APP_NAME.app"
-VERSION="1.1"
+# ── Version: derived from latest git tag ──────────────────────────────────────
+# On main: tag patch +1 (e.g. v1.0.0 → 1.0.1)
+# On other branches: tag.shortcommit-YYMMDDhhmm (e.g. 1.0.0.abc1234-2602261430)
+LAST_TAG=$(git -C "$DIR" describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+BASE="${LAST_TAG#v}"
+BRANCH=$(git -C "$DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+if [[ "$BRANCH" == "main" ]]; then
+    VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+else
+    SHORT_COMMIT=$(git -C "$DIR" rev-parse --short HEAD 2>/dev/null || echo "0000000")
+    SHORT_DATE=$(date +%y%m%d%H%M)
+    VERSION="${BASE}.${SHORT_COMMIT}-${SHORT_DATE}"
+fi
 
 echo ""
 echo "  Building $APP_NAME.app..."

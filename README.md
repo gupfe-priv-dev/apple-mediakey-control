@@ -75,5 +75,5 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
-| 1.1 | Unix socket IPC, automatic Accessibility prompt, port conflict handling |
-| 1.0 | Initial release |
+| 1.1.0 | Unix socket IPC, automatic Accessibility prompt, port conflict handling |
+| 1.0.0 | Initial release |
