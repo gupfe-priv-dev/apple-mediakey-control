@@ -2,7 +2,7 @@
 
 Control your Mac's media and brightness keys from any device on your local network — phone, tablet, or another computer — via a simple web UI in the browser.
 
-![App icon and web UI](icon_1024.png)
+<img src="icon_1024.png" width="96" alt="MediaKeyControl icon">
 
 ## What it does
 
