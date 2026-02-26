@@ -26,9 +26,7 @@ func mklog(_ msg: String) {
             FileManager.default.createFile(atPath: LOG_PATH, contents: nil)
         }
         if let fh = FileHandle(forWritingAtPath: LOG_PATH) {
-            fh.seekToEndOfFile()
-            fh.write(data)
-            fh.closeFile()
+            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
         }
     }
 }
@@ -60,34 +58,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ note: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        buildMenu()       // icon must appear immediately — nothing blocking after this
-        startKeyServer()
-        requestAccessibility()
-        mklog("startup — Accessibility: \(AXIsProcessTrusted() ? "GRANTED ✓" : "NOT GRANTED ✗")")
-        // freePort() may sleep 0.4 s — run on background thread, then start server on main
+        buildMenu()        // icon appears immediately — nothing blocking beyond this point
+        startKeyServer()   // background thread, non-blocking
+
+        // All blocking work on background thread; startServer called on main after
         DispatchQueue.global().async {
             self.freePort()
-            DispatchQueue.main.async {
-                self.startServer()
-            }
+            DispatchQueue.main.async { self.startServer() }
         }
+
+        // Accessibility check after UI is fully rendered (never blocks main thread)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.refreshAccessibility(force: false)
+        }
+
+        mklog("startup — Accessibility: \(AXIsProcessTrusted() ? "GRANTED ✓" : "NOT GRANTED ✗")")
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { self.openInBrowser() }
     }
 
-    func requestAccessibility() {
-        guard !AXIsProcessTrusted() else { return }
-        // Prompt macOS to open System Settings → Accessibility for this app
-        let opts = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(opts)
-        // Update menu label so user knows action is needed
-        DispatchQueue.main.async {
-            self.urlMenuItem.title = "⚠ Grant Accessibility — see prompt"
+    // ── Accessibility: reset stale TCC entries, then re-request both entries ──
+    // Resets com.gunnar.mediakeycontrol, which covers both
+    // "MediaKeyControl" (executable) and "MediaKeyControl.app" (bundle) entries.
+    // Always runs on background thread; the prompt call is dispatched to main.
+    func refreshAccessibility(force: Bool) {
+        guard force || !AXIsProcessTrusted() else { return }
+        DispatchQueue.global().async {
+            // Remove stale entries so fresh ones can be toggled on
+            let reset = Process()
+            reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+            reset.arguments = ["reset", "Accessibility", "com.gunnar.mediakeycontrol"]
+            reset.standardOutput = Pipe(); reset.standardError = Pipe()
+            try? reset.run(); reset.waitUntilExit()
+
+            // Prompt — opens System Settings → Accessibility, registers this process.
+            // Both the executable and bundle entries will appear ready to toggle on.
+            DispatchQueue.main.async {
+                let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+                AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+            }
         }
     }
 
     @objc func grantAccessibility() {
-        let opts = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(opts)
+        refreshAccessibility(force: true)
     }
 
     // ── Unix socket listener ──────────────────────────────────────────────────
@@ -120,7 +133,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let msg = String(bytes: buf[0..<n], encoding: .utf8)?
                     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 if let keyType = Int(msg) {
-                    // CRITICAL: AppKit must run on main thread
                     DispatchQueue.main.async { sendNXKey(keyType) }
                 }
             }
@@ -155,14 +167,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
     }
 
-    // Kill any process already listening on PORT so our server can bind
+    // Kill any process already listening on PORT (runs on background thread only)
     func freePort() {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
         p.arguments = ["-ti", ":\(PORT)"]
         let pipe = Pipe()
-        p.standardOutput = pipe
-        p.standardError  = Pipe()   // suppress lsof stderr
+        p.standardOutput = pipe; p.standardError = Pipe()
         try? p.run(); p.waitUntilExit()
         let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         for pidStr in out.components(separatedBy: .newlines) {
@@ -173,12 +184,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if !out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Thread.sleep(forTimeInterval: 0.4)  // let the process die
+            Thread.sleep(forTimeInterval: 0.4)
         }
     }
 
     func startServer() {
-        freePort()
+        // freePort() already called on background thread before this — do NOT call again here
         guard let resources = Bundle.main.resourcePath else { return }
         let script = resources + "/server.py"
         let candidates = ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3"]
