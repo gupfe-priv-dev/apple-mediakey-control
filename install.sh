@@ -68,14 +68,42 @@ answer="${answer:-Y}"
 echo ""
 
 if [[ ! "$answer" =~ $T_YES_KEYS ]]; then
-    echo "$T_MANUAL"
-    echo ""
-    echo "    cp -r \"$APP\" /Applications/"
-    echo "    xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
-    echo "    open /Applications/$APP_NAME.app"
-    echo ""
-    echo "  ────────────────────────────────────────"
-    (sleep 0.5 && osascript -e 'tell application "Terminal" to close front window') &
+    SUMMARY="$DIR/MediaKeyControl Info.txt"
+    if [[ "$PRIMARY_LANG" == "de" ]]; then
+        {
+            echo "MediaKeyControl - Manuelle Installation"
+            echo "======================================="
+            echo ""
+            echo "Diese Befehle im Terminal ausfuehren:"
+            echo ""
+            echo "   cp -r \"$APP\" /Applications/"
+            echo "   xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
+            echo "   open /Applications/$APP_NAME.app"
+            echo ""
+            echo "======================================="
+            echo "Web-Oberflaeche (nach dem Start):"
+            echo ""
+            echo "   http://$(scutil --get LocalHostName 2>/dev/null || hostname).local:8765"
+        } > "$SUMMARY"
+    else
+        {
+            echo "MediaKeyControl - Manual Installation"
+            echo "======================================="
+            echo ""
+            echo "Run these commands in Terminal:"
+            echo ""
+            echo "   cp -r \"$APP\" /Applications/"
+            echo "   xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
+            echo "   open /Applications/$APP_NAME.app"
+            echo ""
+            echo "======================================="
+            echo "Web UI (after launching):"
+            echo ""
+            echo "   http://$(scutil --get LocalHostName 2>/dev/null || hostname).local:8765"
+        } > "$SUMMARY"
+    fi
+    open "$SUMMARY"
+    (sleep 2 && osascript -e 'tell application "Terminal" to close front window') &
     disown
     exit 0
 fi
