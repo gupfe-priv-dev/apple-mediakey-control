@@ -5,8 +5,16 @@
 #   1. Go to Actions → Release → Run workflow
 #   2. Once it completes (tag + GitHub Release created), run:
 #        ./release-asset.sh
+#
+# Options:
+#   --dry-run   Build and package only, skip upload (zip stays in project dir)
 
 set -euo pipefail
+
+DRY_RUN=false
+for arg in "$@"; do
+    [[ "$arg" == "--dry-run" ]] && DRY_RUN=true
+done
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="MediaKeyControl"
@@ -31,17 +39,22 @@ chmod +x "$TMP/Install MediaKeyControl.command"
 (cd "$TMP" && zip -r "$DIR/$ZIP" .)
 rm -rf "$TMP"
 
-# ── Upload to GitHub release (create if missing) ─────────────────────────────
-echo "  Uploading to GitHub release ${TAG}..."
-if ! gh release view "$TAG" --repo "$REPO" &>/dev/null; then
-    echo "  Release ${TAG} not found — creating..."
-    gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes ""
+# ── Upload or dry-run ─────────────────────────────────────────────────────────
+if $DRY_RUN; then
+    echo "  Dry run — zip ready for inspection:"
+    echo "  $(cd "$DIR" && pwd)/$ZIP"
+    echo ""
+    echo "  To upload:  ./release-asset.sh"
+    echo ""
+else
+    echo "  Uploading to GitHub release ${TAG}..."
+    if ! gh release view "$TAG" --repo "$REPO" &>/dev/null; then
+        echo "  Release ${TAG} not found — creating..."
+        gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes ""
+    fi
+    gh release delete-asset "$TAG" "$ZIP" --repo "$REPO" -y 2>/dev/null || true
+    gh release upload "$TAG" "$DIR/$ZIP" --repo "$REPO"
+    rm "$DIR/$ZIP"
+    echo "  ✓  Asset uploaded to ${TAG}"
+    echo ""
 fi
-gh release delete-asset "$TAG" "$ZIP" --repo "$REPO" -y 2>/dev/null || true
-gh release upload "$TAG" "$DIR/$ZIP" --repo "$REPO"
-
-# ── Clean up ──────────────────────────────────────────────────────────────────
-rm "$DIR/$ZIP"
-
-echo "  ✓  Asset uploaded to ${TAG}"
-echo ""
