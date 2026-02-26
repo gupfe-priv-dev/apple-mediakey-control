@@ -22,6 +22,18 @@ Add it to your iPhone home screen as a web app for quick access.
 - Xcode Command Line Tools (`xcode-select --install`)
 - Python 3 (ships with macOS or via Homebrew)
 
+## Download
+
+Grab the latest `MediaKeyControl.zip` from the [Releases](https://github.com/gupfe-priv-dev/apple-mediakey-control/releases/latest) page, unzip, and move the app to `/Applications`.
+
+Since the app is unsigned, macOS will block it on first launch. Remove the quarantine flag once after downloading:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/MediaKeyControl.app
+```
+
+Then open it normally.
+
 ## Build & Install
 
 ```bash
