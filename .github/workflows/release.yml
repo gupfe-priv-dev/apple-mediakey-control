@@ -44,7 +44,8 @@ jobs:
           V="${{ steps.ver.outputs.version }}"
           N="${{ inputs.notes }}"
           awk -v v="$V" -v n="$N" '
-            /^\|---/ && !done { print; print "| " v " | " n " |"; done=1; next }
+            /^## Version history/ { in_ver=1 }
+            /^\|---/ && in_ver && !done { print; print "| " v " | " n " |"; done=1; next }
             { print }
           ' README.md > README.tmp && mv README.tmp README.md
 
