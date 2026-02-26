@@ -27,6 +27,7 @@ sleep 0.5
 
 rm -rf "$DEST"
 cp -r "$APP" "$DEST"
+xattr -dr com.apple.quarantine "$DEST" 2>/dev/null || true
 
 echo "  ✓  Installed."
 echo ""
