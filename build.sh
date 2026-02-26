@@ -1,9 +1,8 @@
 #!/bin/bash
-# build.sh — builds MediaKeyControl.app
+# build.sh — builds MediaKeyControl.app in the project directory
 #
 # Usage:
-#   ./build.sh              # builds in project dir
-#   ./build.sh --install    # builds + copies to /Applications
+#   ./build.sh
 
 set -euo pipefail
 
@@ -11,11 +10,6 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="MediaKeyControl"
 APP="$DIR/$APP_NAME.app"
 VERSION="1.1"
-INSTALL=false
-
-for arg in "$@"; do
-    [[ "$arg" == "--install" ]] && INSTALL=true
-done
 
 echo ""
 echo "  Building $APP_NAME.app..."
@@ -49,7 +43,7 @@ cp "$DIR/server.py" "$RESOURCES/server.py"
 echo "        ✓ server.py"
 
 # ── Info.plist ────────────────────────────────────────────────────────────────
-cat > "$CONTENTS/Info.plist" << 'PLIST'
+cat > "$CONTENTS/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -76,22 +70,7 @@ PLIST
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo "  ✓  Built: $APP"
-
-if $INSTALL; then
-    echo ""
-    DEST="/Applications/$APP_NAME.app"
-    echo "  Installing to $DEST..."
-    # Close running instance first
-    pkill -x "$APP_NAME" 2>/dev/null || true
-    sleep 0.5
-    rm -rf "$DEST"
-    cp -r "$APP" "$DEST"
-    echo "  ✓  Installed."
-    echo ""
-    echo "  Launch: open '$DEST'"
-else
-    echo ""
-    echo "  To install:  ./build.sh --install"
-    echo "  To run now:  open '$APP'"
-fi
+echo ""
+echo "  To install:  ./install.sh"
+echo "  To run now:  open '$APP'"
 echo ""
