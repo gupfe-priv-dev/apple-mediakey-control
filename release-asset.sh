@@ -12,12 +12,12 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="MediaKeyControl"
 REPO="gupfe-priv-dev/apple-mediakey-control"
 
-# ── Build ─────────────────────────────────────────────────────────────────────
-"$DIR/build.sh"
+# ── Target the latest existing GitHub release ────────────────────────────────
+TAG=$(gh release list --repo "$REPO" --limit 1 --json tagName --jq '.[0].tagName')
+VERSION="${TAG#v}"
 
-# ── Derive version from built app ─────────────────────────────────────────────
-VERSION=$(defaults read "$DIR/$APP_NAME.app/Contents/Info.plist" CFBundleShortVersionString)
-TAG="v${VERSION}"
+# ── Build with that exact version ─────────────────────────────────────────────
+VERSION="$VERSION" "$DIR/build.sh"
 ZIP="${APP_NAME}-${TAG}.zip"
 
 echo ""
