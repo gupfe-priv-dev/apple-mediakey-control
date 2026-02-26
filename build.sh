@@ -57,6 +57,11 @@ echo "  [3/3] Copying server.py..."
 cp "$DIR/server.py" "$RESOURCES/server.py"
 echo "        ✓ server.py"
 
+# ── Copy app icon ──────────────────────────────────────────────────────────────
+if [[ -f "$DIR/AppIcon.icns" ]]; then
+    cp "$DIR/AppIcon.icns" "$RESOURCES/AppIcon.icns"
+fi
+
 # ── Info.plist ────────────────────────────────────────────────────────────────
 cat > "$CONTENTS/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -73,6 +78,7 @@ cat > "$CONTENTS/Info.plist" << PLIST
     <key>CFBundlePackageType</key>     <string>APPL</string>
     <key>NSPrincipalClass</key>        <string>NSApplication</string>
     <key>NSHighResolutionCapable</key> <true/>
+    <key>CFBundleIconFile</key>        <string>AppIcon</string>
     <!-- Menu bar only — no Dock icon -->
     <key>LSUIElement</key>             <true/>
     <!-- Accessibility usage description shown in System Settings -->
