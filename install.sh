@@ -58,9 +58,18 @@ xattr -dr com.apple.quarantine "$DEST" 2>/dev/null || true
 
 echo "  ✓  Installed."
 echo ""
+
+# ── Bonjour URL → clipboard ───────────────────────────────────────────────────
+HOST=$(scutil --get LocalHostName 2>/dev/null || hostname)
+URL="http://${HOST}.local:8765"
+echo "$URL" | pbcopy
+
 echo "  Launching..."
 open "$DEST"
 echo ""
 echo "  ────────────────────────────────────────"
+echo "  Web UI:  $URL"
+echo "  (copied to clipboard — paste into your phone's browser)"
+echo ""
 echo "  Done. You can close this window."
 echo ""
