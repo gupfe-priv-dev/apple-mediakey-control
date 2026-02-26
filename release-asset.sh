@@ -30,8 +30,12 @@ cp "$DIR/install.sh" "$TMP/"
 (cd "$TMP" && zip -r "$DIR/$ZIP" .)
 rm -rf "$TMP"
 
-# ── Upload to GitHub release ──────────────────────────────────────────────────
+# ── Upload to GitHub release (create if missing) ─────────────────────────────
 echo "  Uploading to GitHub release ${TAG}..."
+if ! gh release view "$TAG" --repo "$REPO" &>/dev/null; then
+    echo "  Release ${TAG} not found — creating..."
+    gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes ""
+fi
 gh release delete-asset "$TAG" "$ZIP" --repo "$REPO" -y 2>/dev/null || true
 gh release upload "$TAG" "$DIR/$ZIP" --repo "$REPO"
 
