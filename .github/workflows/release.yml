@@ -15,7 +15,7 @@ on:
 
 jobs:
   release:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -59,23 +59,9 @@ jobs:
           git push
           git push origin "${{ steps.ver.outputs.tag }}"
 
-      - name: Build app
-        run: ./build.sh
-
-      - name: Package release zip
-        run: |
-          V="${{ steps.ver.outputs.version }}"
-          mkdir release_pkg
-          cp -r MediaKeyControl.app release_pkg/
-          cp install.sh release_pkg/
-          cd release_pkg
-          zip -r "../MediaKeyControl-v${V}.zip" .
-          cd ..
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: ${{ steps.ver.outputs.tag }}
           body: ${{ inputs.notes }}
-          files: MediaKeyControl-v${{ steps.ver.outputs.version }}.zip
