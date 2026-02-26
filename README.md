@@ -1,8 +1,8 @@
 # MediaKeyControl
 
-Control your MacBook's media and brightness keys from any device on your local network — phone, tablet, or another computer — via a simple web UI in the browser.
+Control your Mac's media and brightness keys from any device on your local network — phone, tablet, or another computer — via a simple web UI in the browser.
 
-![UI showing Display, Media, and Volume controls]
+![App icon and web UI](icon_1024.png)
 
 ## What it does
 
@@ -15,6 +15,7 @@ Opens a password-protected web page (served locally at port 8765) with buttons f
 | Volume  | F10 Mute · F11 Down · F12 Up |
 
 Add it to your iPhone home screen as a web app for quick access.
+Works with MacBook, iMac, or any Mac — with any keyboard attached.
 
 ## Requirements
 
@@ -22,17 +23,18 @@ Add it to your iPhone home screen as a web app for quick access.
 - Xcode Command Line Tools (`xcode-select --install`)
 - Python 3 (ships with macOS or via Homebrew)
 
-## Download
+## Download & Install
 
-Grab the latest `MediaKeyControl.zip` from the [Releases](https://github.com/gupfe-priv-dev/apple-mediakey-control/releases/latest) page, unzip, and move the app to `/Applications`.
+Grab the latest `MediaKeyControl.zip` from the [Releases](https://github.com/gupfe-priv-dev/apple-mediakey-control/releases/latest) page, unzip it, then double-click **`Install MediaKeyControl.command`**.
 
-Since the app is unsigned, macOS will block it on first launch. If you use `install.sh` it handles this automatically. Otherwise remove the quarantine flag once manually:
+The installer:
+- Asks before touching anything (Y/N prompt)
+- Copies the app to `/Applications` and removes the quarantine flag automatically
+- Opens a summary text file with the web UI URL
+- Detects your system language (English / German)
+- Self-closes the Terminal window when done
 
-```bash
-xattr -dr com.apple.quarantine /Applications/MediaKeyControl.app
-```
-
-## Build & Install
+## Build from source
 
 ```bash
 ./build.sh      # compiles MediaKeyControl.app in the project directory
@@ -57,6 +59,7 @@ open /Applications/MediaKeyControl.app
 - The app lives in the menu bar (keyboard icon).
 - Open the web UI from the menu or bookmark `http://<your-mac>.local:8765` on any device.
 - The Bonjour hostname (`.local`) is shown in the menu and on the web page — use it for a stable bookmark that doesn't change when your IP does.
+- Login sessions persist across server restarts (30-day cookie).
 
 ## How it works
 
@@ -85,7 +88,7 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
-| 1.0.4 | added: release  files |
+| 1.0.4 | added: release files |
 | 1.0.3 | First Release |
 | 1.0.1 | Remove auto-launch, fix startup thread safety, git-tag versioning |
 | 1.0.0 | Initial release — Unix socket IPC, Accessibility prompt, port conflict handling |
