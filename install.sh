@@ -102,48 +102,49 @@ echo "$T_LAUNCHING"
 open "$DEST"
 
 # ── Write summary file and open it ───────────────────────────────────────────
+SUMMARY="$DIR/MediaKeyControl Info.txt"
 if [[ "$PRIMARY_LANG" == "de" ]]; then
-    SUMMARY="$HOME/Desktop/MediaKeyControl Info.txt"
-    cat > "$SUMMARY" << EOF
-MediaKeyControl – Installiert
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✓ App installiert:  /Applications/MediaKeyControl.app
-✓ URL (Lesezeichen auf dem Handy speichern):
-
-   $URL
-
-   (bereits in der Zwischenablage)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Erster Start:
-  • Bedienungshilfen erlauben, wenn gefragt
-  • URL auf dem Handy als Lesezeichen speichern
-    oder zum Home-Bildschirm hinzufügen
-
-Die App erscheint in der Menüleiste (⌨ Symbol)
-EOF
+    {
+        echo "MediaKeyControl - Installiert"
+        echo "======================================="
+        echo ""
+        echo "App:  /Applications/MediaKeyControl.app"
+        echo ""
+        echo "Web-Oberflaeche (URL als Lesezeichen speichern):"
+        echo ""
+        echo "   $URL"
+        echo ""
+        echo "   (bereits in der Zwischenablage)"
+        echo ""
+        echo "======================================="
+        echo "Erster Start:"
+        echo "  - Bedienungshilfen erlauben, wenn gefragt"
+        echo "  - URL auf dem Handy als Lesezeichen speichern"
+        echo "    oder zum Home-Bildschirm hinzufuegen"
+        echo ""
+        echo "Die App erscheint in der Menueleiste (Tastatur-Symbol)"
+    } > "$SUMMARY"
 else
-    SUMMARY="$HOME/Desktop/MediaKeyControl Info.txt"
-    cat > "$SUMMARY" << EOF
-MediaKeyControl – Installed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✓ App installed:  /Applications/MediaKeyControl.app
-✓ Web UI (bookmark this on your phone):
-
-   $URL
-
-   (already copied to clipboard)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-First launch:
-  • Grant Accessibility when prompted
-  • Bookmark the URL on your phone
-    or add it to your Home Screen
-
-The app lives in your menu bar (⌨ icon)
-EOF
+    {
+        echo "MediaKeyControl - Installed"
+        echo "======================================="
+        echo ""
+        echo "App:  /Applications/MediaKeyControl.app"
+        echo ""
+        echo "Web UI (bookmark this on your phone):"
+        echo ""
+        echo "   $URL"
+        echo ""
+        echo "   (already copied to clipboard)"
+        echo ""
+        echo "======================================="
+        echo "First launch:"
+        echo "  - Grant Accessibility when prompted"
+        echo "  - Bookmark the URL on your phone"
+        echo "    or add it to your Home Screen"
+        echo ""
+        echo "The app lives in your menu bar (keyboard icon)"
+    } > "$SUMMARY"
 fi
 
 open "$SUMMARY"
