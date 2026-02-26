@@ -73,7 +73,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         mklog("startup — Accessibility: \(AXIsProcessTrusted() ? "GRANTED ✓" : "NOT GRANTED ✗")")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { self.openInBrowser() }
     }
 
     // ── Accessibility: reset stale TCC entries, then re-request both entries ──
