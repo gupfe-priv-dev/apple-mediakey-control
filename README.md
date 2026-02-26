@@ -85,6 +85,7 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
+| 1.0.4 | added: release  files |
 | 1.0.3 | First Release |
 | 1.0.1 | Remove auto-launch, fix startup thread safety, git-tag versioning |
 | 1.0.0 | Initial release — Unix socket IPC, Accessibility prompt, port conflict handling |
