@@ -11,6 +11,7 @@ Change it: python3 server.py --set-password <newpassword>
 
 import base64
 import http.server
+import os
 import json
 import plistlib
 import secrets as _sec
@@ -178,19 +179,33 @@ def _save_password(pw: str):
     s["password_b64"] = base64.b64encode(pw.encode()).decode()
     _save_settings(s)
 
+def _load_sessions_from_disk() -> dict:
+    s = _load_settings()
+    now = time.time()
+    return {k: v for k, v in s.get("sessions", {}).items() if v > now}
+
+def _save_sessions_to_disk():
+    s = _load_settings()
+    now = time.time()
+    s["sessions"] = {k: v for k, v in _sessions.items() if v > now}
+    _save_settings(s)
+
 def _setup_auth():
-    global _password
+    global _password, _sessions
     s   = _load_settings()
     b64 = s.get("password_b64", "")
     if b64:
         try:
             _password = base64.b64decode(b64.encode()).decode()
             print("  ✓  Password loaded from Application Support")
-            return
         except Exception:
-            pass
-    _password = ""
-    print("  ℹ  No password set — first-run setup via web UI")
+            _password = ""
+    else:
+        _password = ""
+        print("  ℹ  No password set — first-run setup via web UI")
+    _sessions = _load_sessions_from_disk()
+    if _sessions:
+        print(f"  ✓  Restored {len(_sessions)} active session(s)")
 
 def _valid_session(token: str) -> bool:
     exp = _sessions.get(token)
@@ -205,6 +220,7 @@ def _valid_session(token: str) -> bool:
 def _new_session() -> str:
     token = _sec.token_hex(32)
     _sessions[token] = time.time() + SESSION_TTL
+    _save_sessions_to_disk()
     return token
 
 def _get_cookie(handler, name: str) -> str:
@@ -346,7 +362,8 @@ _LOGIN_HTML = f"""<!DOCTYPE html>
   </div>
   __ERROR__
   <form method="POST" action="/login">
-    <input type="password" name="pw" placeholder="Password" autofocus autocomplete="current-password">
+    <input type="text" name="username" autocomplete="username" value="admin" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <input type="password" name="pw" id="password" placeholder="Password" autofocus autocomplete="current-password">
     <button class="btn" type="submit">Unlock</button>
   </form>
   <div class="bm-note">
@@ -668,6 +685,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         if path == "/logout":
             token = _get_cookie(self, COOKIE_NAME)
             _sessions.pop(token, None)
+            _save_sessions_to_disk()
             self._redirect("/login", cookie=_cookie_set("", max_age=0))
             return
 
@@ -758,6 +776,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 _sessions.clear()
                 if cur_exp: _sessions[tok] = cur_exp
                 _save_password(pw)
+                _save_sessions_to_disk()
                 self._redirect("/change-password?success=1")
             return
 
@@ -834,6 +853,18 @@ if __name__ == "__main__":
         else:
             print(f"\n  ⚠  Could not start server: {e}\n")
         sys.exit(1)
+
+    # ── Watchdog: exit when parent process (MediaKeyControl.app) dies ─────────
+    # When the app is force-killed or crashes, this process gets reparented to
+    # launchd (PID 1). Detect that and exit cleanly.
+    _ppid = os.getppid()
+    if _ppid > 1:   # started by the app, not a standalone shell session
+        def _watch_parent():
+            while True:
+                time.sleep(3)
+                if os.getppid() != _ppid:
+                    os._exit(0)
+        threading.Thread(target=_watch_parent, daemon=True).start()
 
     try:
         server.serve_forever()
