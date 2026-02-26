@@ -10,7 +10,6 @@ Opens a password-protected web page (served locally at port 8765) with buttons f
 
 | Section | Keys |
 |---------|------|
-| 1.0.2 | first release |
 | Display | F1 Dim · F2 Brighten |
 | Media   | F7 Previous · F8 Play/Pause · F9 Next |
 | Volume  | F10 Mute · F11 Down · F12 Up |
@@ -76,5 +75,6 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
+| 1.0.2 | first release |
 | 1.0.1 | Remove auto-launch, fix startup thread safety, git-tag versioning |
 | 1.0.0 | Initial release — Unix socket IPC, Accessibility prompt, port conflict handling |
