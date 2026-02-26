@@ -75,8 +75,8 @@ if [[ ! "$answer" =~ $T_YES_KEYS ]]; then
     echo "    open /Applications/$APP_NAME.app"
     echo ""
     echo "  ────────────────────────────────────────"
-    echo "$T_DONE"
-    echo ""
+    (sleep 0.5 && osascript -e 'tell application "Terminal" to close front window') &
+    disown
     exit 0
 fi
 
@@ -100,10 +100,55 @@ echo "$URL" | pbcopy
 
 echo "$T_LAUNCHING"
 open "$DEST"
-echo ""
-echo "  ────────────────────────────────────────"
-echo "$T_WEBUI  $URL"
-echo "$T_CLIPBOARD"
-echo ""
-echo "$T_DONE"
-echo ""
+
+# ── Write summary file and open it ───────────────────────────────────────────
+if [[ "$PRIMARY_LANG" == "de" ]]; then
+    SUMMARY="$HOME/Desktop/MediaKeyControl – Info.txt"
+    cat > "$SUMMARY" << EOF
+MediaKeyControl – Installiert
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ App installiert:  /Applications/MediaKeyControl.app
+✓ URL (Lesezeichen auf dem Handy speichern):
+
+   $URL
+
+   (bereits in der Zwischenablage)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Erster Start:
+  • Bedienungshilfen erlauben, wenn gefragt
+  • URL auf dem Handy als Lesezeichen speichern
+    oder zum Home-Bildschirm hinzufügen
+
+Die App erscheint in der Menüleiste (⌨ Symbol)
+EOF
+else
+    SUMMARY="$HOME/Desktop/MediaKeyControl – Info.txt"
+    cat > "$SUMMARY" << EOF
+MediaKeyControl – Installed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ App installed:  /Applications/MediaKeyControl.app
+✓ Web UI (bookmark this on your phone):
+
+   $URL
+
+   (already copied to clipboard)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+First launch:
+  • Grant Accessibility when prompted
+  • Bookmark the URL on your phone
+    or add it to your Home Screen
+
+The app lives in your menu bar (⌨ icon)
+EOF
+fi
+
+open "$SUMMARY"
+
+# ── Self-close Terminal window ────────────────────────────────────────────────
+(sleep 0.5 && osascript -e 'tell application "Terminal" to close front window') &
+disown
+exit 0
