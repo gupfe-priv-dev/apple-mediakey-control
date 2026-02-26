@@ -26,13 +26,11 @@ Add it to your iPhone home screen as a web app for quick access.
 
 Grab the latest `MediaKeyControl.zip` from the [Releases](https://github.com/gupfe-priv-dev/apple-mediakey-control/releases/latest) page, unzip, and move the app to `/Applications`.
 
-Since the app is unsigned, macOS will block it on first launch. Remove the quarantine flag once after downloading:
+Since the app is unsigned, macOS will block it on first launch. If you use `install.sh` it handles this automatically. Otherwise remove the quarantine flag once manually:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/MediaKeyControl.app
 ```
-
-Then open it normally.
 
 ## Build & Install
 
