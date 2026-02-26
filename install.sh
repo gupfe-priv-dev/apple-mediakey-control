@@ -11,43 +11,77 @@ APP_NAME="MediaKeyControl"
 APP="$DIR/$APP_NAME.app"
 DEST="/Applications/$APP_NAME.app"
 
+# ── Language detection ────────────────────────────────────────────────────────
+PRIMARY_LANG=$(defaults read -g AppleLanguages 2>/dev/null | grep -m1 -o '"[a-z][a-z]' | tr -d '"' || echo "en")
+if [[ "$PRIMARY_LANG" == "de" ]]; then
+    T_TITLE="  MediaKeyControl  Installation"
+    T_NOT_BUILT="  App noch nicht erstellt — build.sh wird ausgeführt..."
+    T_QUESTION="  MediaKeyControl in /Applications installieren?"
+    T_YES="    [J]  Ja  — jetzt installieren  (empfohlen)"
+    T_NO="    [N]  Nein — manuelle Schritte anzeigen"
+    T_PROMPT="  Ihre Wahl [J/n]: "
+    T_YES_KEYS="^[JjYy]"
+    T_MANUAL="  Für die manuelle Installation diese Befehle im Terminal ausführen:"
+    T_INSTALLING="  Installiere nach $DEST..."
+    T_INSTALLED="  ✓  Installiert."
+    T_LAUNCHING="  Wird gestartet..."
+    T_WEBUI="  Web-Oberfläche:"
+    T_CLIPBOARD="  (In die Zwischenablage kopiert — im Browser des Telefons einfügen)"
+    T_DONE="  Fertig. Dieses Fenster kann geschlossen werden."
+else
+    T_TITLE="  MediaKeyControl  Installer"
+    T_NOT_BUILT="  App not built yet — running build.sh first..."
+    T_QUESTION="  Install MediaKeyControl to /Applications?"
+    T_YES="    [Y]  Yes — install now  (recommended)"
+    T_NO="    [N]  No  — show manual steps"
+    T_PROMPT="  Your choice [Y/n]: "
+    T_YES_KEYS="^[Yy]"
+    T_MANUAL="  To install manually, run these commands in Terminal:"
+    T_INSTALLING="  Installing to $DEST..."
+    T_INSTALLED="  ✓  Installed."
+    T_LAUNCHING="  Launching..."
+    T_WEBUI="  Web UI:"
+    T_CLIPBOARD="  (copied to clipboard — paste into your phone's browser)"
+    T_DONE="  Done. You can close this window."
+fi
+
 echo ""
 echo "  ╔══════════════════════════════════════╗"
-echo "  ║     MediaKeyControl  Installer       ║"
+echo "  ║  $T_TITLE  ║"
 echo "  ╚══════════════════════════════════════╝"
 echo ""
 
 # ── Build if not already built ────────────────────────────────────────────────
 if [[ ! -d "$APP" ]]; then
-    echo "  App not built yet — running build.sh first..."
+    echo "$T_NOT_BUILT"
     "$DIR/build.sh"
 fi
 
 # ── Ask user ──────────────────────────────────────────────────────────────────
-echo "  Install MediaKeyControl to /Applications?"
+echo "$T_QUESTION"
 echo ""
-echo "    [Y]  Yes — install now  (recommended)"
-echo "    [N]  No  — show manual steps"
+echo "$T_YES"
+echo "$T_NO"
 echo ""
-read -r -p "  Your choice [Y/n]: " answer
+read -r -p "$T_PROMPT" answer
 answer="${answer:-Y}"
 echo ""
 
-if [[ "$answer" =~ ^[Nn] ]]; then
-    echo "  To install manually, run these commands in Terminal:"
+if [[ ! "$answer" =~ $T_YES_KEYS ]]; then
+    echo "$T_MANUAL"
     echo ""
-    echo "    sudo cp -r \"$APP\" /Applications/"
+    echo "    cp -r \"$APP\" /Applications/"
     echo "    xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
     echo "    open /Applications/$APP_NAME.app"
     echo ""
     echo "  ────────────────────────────────────────"
-    echo "  Done. You can close this window."
+    echo "$T_DONE"
     echo ""
     exit 0
 fi
 
 # ── Install ───────────────────────────────────────────────────────────────────
-echo "  Installing to $DEST..."
+echo "$T_INSTALLING"
 
 pkill -x "$APP_NAME" 2>/dev/null || true
 sleep 0.5
@@ -56,7 +90,7 @@ rm -rf "$DEST"
 cp -r "$APP" "$DEST"
 xattr -dr com.apple.quarantine "$DEST" 2>/dev/null || true
 
-echo "  ✓  Installed."
+echo "$T_INSTALLED"
 echo ""
 
 # ── Bonjour URL → clipboard ───────────────────────────────────────────────────
@@ -64,12 +98,12 @@ HOST=$(scutil --get LocalHostName 2>/dev/null || hostname)
 URL="http://${HOST}.local:8765"
 echo "$URL" | pbcopy
 
-echo "  Launching..."
+echo "$T_LAUNCHING"
 open "$DEST"
 echo ""
 echo "  ────────────────────────────────────────"
-echo "  Web UI:  $URL"
-echo "  (copied to clipboard — paste into your phone's browser)"
+echo "$T_WEBUI  $URL"
+echo "$T_CLIPBOARD"
 echo ""
-echo "  Done. You can close this window."
+echo "$T_DONE"
 echo ""
