@@ -82,6 +82,7 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
+| 1.0.7 | Universal server binary (arm64 + x86_64), accessibility prompt fallback for macOS 13+ |
 | 1.0.6 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
 | 0.0.1 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
 | 0.0.1 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
