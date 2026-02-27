@@ -98,7 +98,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
                 AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+                // Fallback: on macOS 13+ the prompt may not open System Settings
+                // reliably — open the Accessibility pane explicitly after a delay.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if !AXIsProcessTrusted() { self.openAccessibilitySettings() }
+                }
             }
+        }
+    }
+
+    func openAccessibilitySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
         }
     }
 

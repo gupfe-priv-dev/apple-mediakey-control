@@ -27,6 +27,11 @@ jobs:
       - name: Fetch all tags
         run: git fetch --tags --force
 
+      - name: Set up universal2 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Compute next version
         id: ver
         run: |

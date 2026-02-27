@@ -87,8 +87,20 @@ python3 -m venv "$BUILD_TMP/venv"
 VENV_PY="$BUILD_TMP/venv/bin/python3"
 "$VENV_PY" -m pip install --quiet pyinstaller
 
+# Build universal2 if Python itself is universal2 (e.g. python.org installer),
+# otherwise fall back to current architecture only.
+PYINSTALLER_ARCH=()
+if file "$("$VENV_PY" -c 'import sys; print(sys.executable)')" | grep -q "universal"; then
+    PYINSTALLER_ARCH=(--target-arch universal2)
+    SERVER_LABEL="universal2"
+else
+    SERVER_LABEL="$(uname -m)"
+    echo "  ⚠  Python is not universal2 — server will be ${SERVER_LABEL} only"
+fi
+
 "$VENV_PY" -m PyInstaller \
     --onefile \
+    ${PYINSTALLER_ARCH[@]+"${PYINSTALLER_ARCH[@]}"} \
     --name server \
     --distpath "$BUILD_TMP/dist" \
     --workpath "$BUILD_TMP/work" \
@@ -98,7 +110,7 @@ VENV_PY="$BUILD_TMP/venv/bin/python3"
     "$DIR/server.py"
 cp "$BUILD_TMP/dist/server" "$RESOURCES/server"
 rm -rf "$BUILD_TMP"
-echo "        ✓ server (standalone, $(uname -m))"
+echo "        ✓ server (standalone, ${SERVER_LABEL})"
 
 # ── Copy app icon ──────────────────────────────────────────────────────────────
 if [[ -f "$DIR/AppIcon.icns" ]]; then
