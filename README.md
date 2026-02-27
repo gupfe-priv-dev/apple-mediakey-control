@@ -4,6 +4,16 @@ Control your Mac's media and brightness keys from any device on your local netwo
 
 <img src="icon_1024.png" width="96" alt="MediaKeyControl icon">
 
+## Download & Install
+
+Paste this into Terminal:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/gupfe-priv-dev/apple-mediakey-control/main/install.sh)"
+```
+
+The installer downloads the latest release, installs to `/Applications`, removes the quarantine flag, and launches the app. No Gatekeeper warnings. English and German supported.
+
 ## What it does
 
 Opens a password-protected web page (served locally at port 8765) with buttons for:
@@ -13,46 +23,19 @@ Opens a password-protected web page (served locally at port 8765) with buttons f
 | Display | F1 Dim · F2 Brighten |
 | Media   | F7 Previous · F8 Play/Pause · F9 Next |
 | Volume  | F10 Mute · F11 Down · F12 Up |
+| System (Advanced) | F3 Mission Control · F4 Launchpad · F5 Kbd Dim · F6 Kbd Brighten |
+
+Tap **Advanced** in the web UI to show the System row. Use **Show QR Code…** from the menu bar to open a native QR code panel — scan with your phone to open the web UI instantly.
 
 Add it to your iPhone home screen as a web app for quick access.
 Works with MacBook, iMac, or any Mac — with any keyboard attached.
-
-## Requirements
-
-- macOS 12 or later
-- Xcode Command Line Tools (`xcode-select --install`)
-- Python 3 (ships with macOS or via Homebrew)
-
-## Download & Install
-
-Grab the latest `MediaKeyControl.zip` from the [Releases](https://github.com/gupfe-priv-dev/apple-mediakey-control/releases/latest) page, unzip it, then double-click **`Install MediaKeyControl.command`**.
-
-The installer:
-- Asks before touching anything (Y/N prompt)
-- Copies the app to `/Applications` and removes the quarantine flag automatically
-- Opens a summary text file with the web UI URL
-- Detects your system language (English / German)
-- Self-closes the Terminal window when done
-
-## Build from source
-
-```bash
-./build.sh      # compiles MediaKeyControl.app in the project directory
-./install.sh    # copies it to /Applications (auto-builds if needed)
-```
-
-Then launch:
-
-```bash
-open /Applications/MediaKeyControl.app
-```
 
 ## First run
 
 1. **Set a password** — the web UI will prompt on first visit.
 2. **Grant Accessibility** — macOS will open System Settings automatically. Toggle MediaKeyControl on in the Accessibility list. This is required for brightness and media key simulation.
 
-> After every rebuild the binary changes, so macOS revokes the Accessibility entry. Use **"Grant Accessibility…"** from the menu bar icon to re-open the Settings pane quickly.
+> The Accessibility grant is tied to the app's path in `/Applications`. It persists across updates as long as the app stays there. Use **"Grant Accessibility…"** from the menu bar icon if you ever need to re-grant.
 
 ## Usage
 
@@ -74,6 +57,17 @@ Browser (iOS/other device)
 
 Volume and mute use AppleScript (`set volume`) and require no special permissions. Brightness and media keys require Accessibility because they synthesise system-level key events via `CGEventPost`.
 
+## Build from source
+
+Requires macOS 10.15+ (Catalina on Intel, Big Sur on Apple Silicon), Xcode Command Line Tools and Python 3.
+
+```bash
+./build.sh                          # compile MediaKeyControl.app
+cp -r MediaKeyControl.app /Applications/
+xattr -dr com.apple.quarantine /Applications/MediaKeyControl.app
+open /Applications/MediaKeyControl.app
+```
+
 ## Standalone mode
 
 You can run the server without the app (e.g. for development):
@@ -88,7 +82,10 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
-| 1.0.5 | What's new                                                                                                                                                                                      Installer                                                                                                                                                                                       - Double-click install — unzip and run Install MediaKeyControl.command, no Terminal commands    needed                                                                                          - Asks before touching anything (Y/N prompt)                                                    - Removes macOS quarantine automatically   - Opens a summary file with your web UI URL after install   - Self-closes the Terminal window when done   - German localization — installer detects your system language and shows text in German or   English   - Bonjour URL (http://yourMac.local:8765) copied to clipboard after install    App icon    - New flat, minimal app icon (play/pause symbol)   - Icon shown in Finder and macOS app switcher    Web UI    - Replaced emoji buttons with clean SVG icons — sharper, consistent across all browsers and   devices   - Favicon now shows in browser tab   - iOS home screen icon — saving the page to your home screen now uses the app icon instead of    a screenshot or letter |
+| 1.0.6 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
+| 0.0.1 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
+| 0.0.1 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
+| 1.0.5 | curl-based installer, SVG icons, app icon, favicon, iOS home screen icon |
 | 1.0.4 | added: release files |
 | 1.0.3 | First Release |
 | 1.0.1 | Remove auto-launch, fix startup thread safety, git-tag versioning |

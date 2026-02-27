@@ -34,8 +34,6 @@ echo "  Packaging ${ZIP}..."
 # ── Create zip ────────────────────────────────────────────────────────────────
 TMP=$(mktemp -d)
 cp -r "$DIR/$APP_NAME.app" "$TMP/"
-cp "$DIR/install.sh" "$TMP/Install MediaKeyControl.command"
-chmod +x "$TMP/Install MediaKeyControl.command"
 (cd "$TMP" && zip -r "$DIR/$ZIP" .)
 rm -rf "$TMP"
 

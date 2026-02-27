@@ -1,4 +1,5 @@
 import AppKit
+import CoreImage
 import Foundation
 
 let PORT = 8765
@@ -55,6 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var serverProcess: Process?
     var urlMenuItem: NSMenuItem!
     var bonjourURL: String = "http://localhost:\(PORT)"
+    var qrPanel: NSPanel?
 
     func applicationDidFinishLaunching(_ note: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -75,31 +77,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mklog("startup — Accessibility: \(AXIsProcessTrusted() ? "GRANTED ✓" : "NOT GRANTED ✗")")
     }
 
-    // ── Accessibility: reset stale TCC entries, then re-request both entries ──
-    // Resets com.gunnar.mediakeycontrol, which covers both
-    // "MediaKeyControl" (executable) and "MediaKeyControl.app" (bundle) entries.
-    // Always runs on background thread; the prompt call is dispatched to main.
+    // ── Accessibility: prompt if not trusted (startup check) ─────────────────
     func refreshAccessibility(force: Bool) {
         guard force || !AXIsProcessTrusted() else { return }
+        // Just prompt — do NOT reset. Auto-resetting wipes valid grants on
+        // every restart because AXIsProcessTrusted() can lag after a rebuild.
+        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+    }
+
+    // ── "Grant Accessibility…" menu item: explicit reset + re-prompt ──────────
+    // Only reset stale TCC entries when the user asks for it explicitly.
+    @objc func grantAccessibility() {
         DispatchQueue.global().async {
-            // Remove stale entries so fresh ones can be toggled on
             let reset = Process()
             reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
             reset.arguments = ["reset", "Accessibility", "com.gunnar.mediakeycontrol"]
             reset.standardOutput = Pipe(); reset.standardError = Pipe()
             try? reset.run(); reset.waitUntilExit()
-
-            // Prompt — opens System Settings → Accessibility, registers this process.
-            // Both the executable and bundle entries will appear ready to toggle on.
             DispatchQueue.main.async {
                 let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
                 AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
             }
         }
-    }
-
-    @objc func grantAccessibility() {
-        refreshAccessibility(force: true)
     }
 
     // ── Unix socket listener ──────────────────────────────────────────────────
@@ -141,7 +141,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func buildMenu() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let btn = statusItem.button {
-            if let img = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "MediaKeyControl") {
+            if #available(macOS 11, *),
+               let img = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "MediaKeyControl") {
                 btn.image = img
             } else {
                 btn.title = "⌨"
@@ -149,6 +150,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Open Controls…", action: #selector(openInBrowser), keyEquivalent: "o"))
+        menu.addItem(NSMenuItem(title: "Show QR Code…", action: #selector(showQRCode), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Grant Accessibility…", action: #selector(grantAccessibility), keyEquivalent: ""))
         menu.addItem(.separator())
@@ -190,14 +192,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func startServer() {
         // freePort() already called on background thread before this — do NOT call again here
         guard let resources = Bundle.main.resourcePath else { return }
-        let script = resources + "/server.py"
-        let candidates = ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3"]
-        guard let python = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
-            urlMenuItem.title = "⚠ python3 not found"; return
+        let serverBin = resources + "/server"
+        guard FileManager.default.isExecutableFile(atPath: serverBin) else {
+            urlMenuItem.title = "⚠ server binary missing"; return
         }
         serverProcess = Process()
-        serverProcess!.executableURL = URL(fileURLWithPath: python)
-        serverProcess!.arguments = [script]
+        serverProcess!.executableURL = URL(fileURLWithPath: serverBin)
+        serverProcess!.arguments = []
         if !FileManager.default.fileExists(atPath: LOG_PATH) {
             FileManager.default.createFile(atPath: LOG_PATH, contents: nil)
         }
@@ -220,6 +221,62 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func openInBrowser() {
         guard let url = URL(string: bonjourURL) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    @objc func showQRCode() {
+        // Reuse existing panel if already open
+        if let panel = qrPanel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        // Generate QR code via CoreImage (no external dependencies)
+        guard let data = bonjourURL.data(using: .utf8),
+              let filter = CIFilter(name: "CIQRCodeGenerator") else { return }
+        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel")
+        guard let ciImage = filter.outputImage else { return }
+
+        let scale: CGFloat = 8
+        let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        let rep = NSCIImageRep(ciImage: scaled)
+        let qrImage = NSImage(size: rep.size)
+        qrImage.addRepresentation(rep)
+
+        // Build panel
+        let padding: CGFloat = 24
+        let imgSize: CGFloat = qrImage.size.width
+        let winW = imgSize + padding * 2
+        let winH = imgSize + padding * 2 + 52  // 52 for title + url label
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: winW, height: winH),
+            styleMask: [.titled, .closable, .nonactivatingPanel],
+            backing: .buffered, defer: false)
+        panel.title = "Scan to open on your device"
+        panel.isReleasedWhenClosed = false
+        panel.level = .floating
+        panel.center()
+
+        let cv = panel.contentView!
+
+        // QR image
+        let imgView = NSImageView(frame: NSRect(x: padding, y: 42, width: imgSize, height: imgSize))
+        imgView.image = qrImage
+        imgView.imageScaling = .scaleProportionallyUpOrDown
+        cv.addSubview(imgView)
+
+        // URL label
+        let label = NSTextField(labelWithString: bonjourURL)
+        label.frame = NSRect(x: padding, y: 10, width: imgSize, height: 24)
+        label.alignment = .center
+        label.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        label.textColor = .secondaryLabelColor
+        cv.addSubview(label)
+
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        qrPanel = panel
     }
 
     func bonjourHostname() -> String {

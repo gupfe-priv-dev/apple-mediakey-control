@@ -1,4 +1,5 @@
 MediaKeyControl.app/
 mediakey
-mediakey.swift
 .secrets
+.build-server/
+*.spec

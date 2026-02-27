@@ -15,7 +15,7 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     permissions:
       contents: write
 
@@ -24,10 +24,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch all tags
+        run: git fetch --tags --force
+
       - name: Compute next version
         id: ver
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LAST_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v0.0.0")
           BASE="${LAST_TAG#v}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
           case "${{ inputs.bump }}" in
@@ -49,6 +52,14 @@ jobs:
             { print }
           ' README.md > README.tmp && mv README.tmp README.md
 
+      - name: Build app
+        run: VERSION="${{ steps.ver.outputs.version }}" ./build.sh
+
+      - name: Package zip
+        run: |
+          zip -r MediaKeyControl.zip MediaKeyControl.app
+          echo "Zip size: $(du -sh MediaKeyControl.zip | cut -f1)"
+
       - name: Commit, tag, push
         run: |
           git config user.name  "Gunnar Budach"
@@ -65,3 +76,4 @@ jobs:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: ${{ steps.ver.outputs.tag }}
           body: ${{ inputs.notes }}
+          files: MediaKeyControl.zip

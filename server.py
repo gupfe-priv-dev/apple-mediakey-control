@@ -25,7 +25,10 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8765
-BASE = Path(__file__).parent
+# When frozen by PyInstaller (--onefile), sys.executable is the binary path.
+# In that case __file__ is inside a temp extraction dir and siblings like
+# `mediakey` live next to the binary — use sys.executable's parent instead.
+BASE = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
 
 # ── Swift NX-key helper ────────────────────────────────────────────────────────
 
@@ -123,17 +126,27 @@ def _vol_down():
 def _mute_toggle():
     _osa("set volume output muted (not output muted of (get volume settings))")
 
+def _open_app(name: str):
+    subprocess.Popen(["open", "-a", name],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 _ACTIONS = {
     # AppleScript — no Accessibility needed
-    "volume_up":       _vol_up,
-    "volume_down":     _vol_down,
-    "mute":            _mute_toggle,
+    "volume_up":         _vol_up,
+    "volume_down":       _vol_down,
+    "mute":              _mute_toggle,
     # NX key events — need Accessibility permission
-    "brightness_down": lambda: _nx(_NX_BRIGHT_DOWN),
-    "brightness_up":   lambda: _nx(_NX_BRIGHT_UP),
-    "prev_track":      lambda: _nx(_NX_PREV),
-    "play_pause":      lambda: _nx(_NX_PLAY),
-    "next_track":      lambda: _nx(_NX_NEXT),
+    "brightness_down":   lambda: _nx(_NX_BRIGHT_DOWN),
+    "brightness_up":     lambda: _nx(_NX_BRIGHT_UP),
+    "prev_track":        lambda: _nx(_NX_PREV),
+    "play_pause":        lambda: _nx(_NX_PLAY),
+    "next_track":        lambda: _nx(_NX_NEXT),
+    # Advanced — keyboard brightness (NX, needs Accessibility)
+    "kbd_bright_up":     lambda: _nx(_NX_KBD_UP),
+    "kbd_bright_down":   lambda: _nx(_NX_KBD_DOWN),
+    # Advanced — system (Launch Services, no special permissions)
+    "mission_control":   lambda: _open_app("Mission Control"),
+    "launchpad":         lambda: _open_app("Launchpad"),
 }
 
 def _get_status():
@@ -483,6 +496,10 @@ button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
 .c-vol button                { background: rgba(255,69,58,.13); }
 .c-vol button:active,
 .c-vol button.tap            { background: rgba(255,69,58,.35); }
+.c-adv button                { background: rgba(100,210,255,.12); }
+.c-adv button:active,
+.c-adv button.tap            { background: rgba(100,210,255,.35); }
+.adv-hidden { display: none; }
 footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction: column; gap: 3px; }
 .bm-label { font-size: 11px; color: rgba(235,235,245,.2); }
 .bm-link  { font-size: 13px; color: rgba(10,132,255,.45); text-decoration: none; word-break: break-all; }
@@ -513,6 +530,7 @@ footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction
   <div class="hrow">
     <h1>MacBook Controls</h1>
     <div class="hlinks">
+      <a class="hlink" id="adv-toggle" href="#">Advanced</a>
       <a class="hlink" href="/change-password">Password</a>
       <a class="hlink" href="/logout">Lock</a>
     </div>
@@ -532,11 +550,23 @@ footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction
   </div>
 </div>
 
+<div class="card c-adv adv-hidden" id="adv-card">
+  <div class="card-label">System</div>
+  <div class="row row-2">
+    <button data-a="mission_control"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="7" rx="1.5"/><rect x="13" y="3" width="9" height="7" rx="1.5"/><rect x="2" y="14" width="9" height="7" rx="1.5"/><rect x="13" y="14" width="9" height="7" rx="1.5"/></svg><span class="sub">F3 · Mission Control</span></button>
+    <button data-a="launchpad"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="12" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="12" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/></svg><span class="sub">F4 · Launchpad</span></button>
+  </div>
+  <div class="row row-2">
+    <button data-a="kbd_bright_down"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 14V9M10 14V7M14 14V7M18 14V9"/><path d="M7 4h2M15 4h2M11 3v2"/></svg><span class="sub">F5 · Kbd Dim</span></button>
+    <button data-a="kbd_bright_up"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 14V9M10 14V7M14 14V7M18 14V9"/><path d="M7 4h2M15 4h2M11 2v3"/></svg><span class="sub">F6 · Kbd Bright</span></button>
+  </div>
+</div>
+
 <div class="card c-media">
   <div class="card-label">Media</div>
   <div class="row row-3">
     <button data-a="prev_track"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="2.5" height="14" rx="1.25"/><path d="M19.5 5L9.5 12l10 7V5z"/></svg><span class="sub">F7</span></button>
-    <button data-a="play_pause" class="play"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5.5L15.5 12 6 18.5V5.5z"/><rect x="17" y="5.5" width="2.5" height="13" rx="1.25"/></svg><span class="sub">F8 · Play / Pause</span></button>
+    <button data-a="play_pause" class="play"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4.5L13.5 12 5 19.5V4.5z"/><rect x="15.5" y="4.5" width="2.5" height="15" rx="1.25"/><rect x="19.5" y="4.5" width="2.5" height="15" rx="1.25"/></svg><span class="sub">F8 · Play / Pause</span></button>
     <button data-a="next_track"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="17.5" y="5" width="2.5" height="14" rx="1.25"/><path d="M4.5 5l10 7-10 7V5z"/></svg><span class="sub">F9</span></button>
   </div>
 </div>
@@ -585,6 +615,20 @@ document.querySelectorAll('button[data-a]').forEach(btn => {
   btn.addEventListener('touchcancel', up);
   btn.addEventListener('mousedown',   down);
   btn.addEventListener('mouseup',     up);
+});
+// Advanced mode toggle
+const advCard   = document.getElementById('adv-card');
+const advToggle = document.getElementById('adv-toggle');
+let advOn = localStorage.getItem('mkc_adv') === '1';
+function applyAdv() {
+  advCard.classList.toggle('adv-hidden', !advOn);
+  advToggle.style.opacity = advOn ? '1' : '0.55';
+}
+applyAdv();
+advToggle.addEventListener('click', e => {
+  e.preventDefault(); advOn = !advOn;
+  localStorage.setItem('mkc_adv', advOn ? '1' : '0');
+  applyAdv();
 });
 syncStatus();
 setInterval(syncStatus, 4000);

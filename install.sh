@@ -1,61 +1,67 @@
 #!/bin/bash
-# install.sh — installs MediaKeyControl.app to /Applications
+# install.sh — downloads and installs MediaKeyControl
 #
 # Usage:
-#   ./install.sh          # install (builds first if needed)
+#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/gupfe-priv-dev/apple-mediakey-control/main/install.sh)"
 
 set -euo pipefail
 
-DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO="gupfe-priv-dev/apple-mediakey-control"
 APP_NAME="MediaKeyControl"
-APP="$DIR/$APP_NAME.app"
 DEST="/Applications/$APP_NAME.app"
 
 # ── Language detection ────────────────────────────────────────────────────────
 PRIMARY_LANG=$(defaults read -g AppleLanguages 2>/dev/null | grep -m1 -o '"[a-z][a-z]' | tr -d '"' || echo "en")
 if [[ "$PRIMARY_LANG" == "de" ]]; then
-    T_TITLE="  MediaKeyControl  Installation"
-    T_NOT_BUILT="  App noch nicht erstellt — build.sh wird ausgeführt..."
+    T_TITLE="MediaKeyControl  Installation"
+    T_FETCHING="  Neueste Version wird ermittelt..."
+    T_DOWNLOADING="  Wird heruntergeladen"
     T_QUESTION="  MediaKeyControl in Programme installieren?"
     T_YES="    [J]  Ja  — jetzt installieren  (empfohlen)"
-    T_NO="    [N]  Nein — manuelle Schritte anzeigen"
-    T_PROMPT="  Ihre Wahl [J/n]: "
+    T_NO="    [N]  Nein — abbrechen"
     T_YES_KEYS="^[JjYy]"
-    T_MANUAL="  Für die manuelle Installation diese Befehle im Terminal ausführen:"
-    T_INSTALLING="  Installiere in Programme..."
+    T_PROMPT="  Ihre Wahl [J/n]: "
+    T_ABORTED="  Abgebrochen."
+    T_INSTALLING="  Installiere in /Applications..."
     T_INSTALLED="  ✓  Installiert."
     T_LAUNCHING="  Wird gestartet..."
-    T_WEBUI="  Web-Oberfläche:"
-    T_CLIPBOARD="  (In die Zwischenablage kopiert — im Browser des Telefons einfügen)"
-    T_DONE="  Fertig. Dieses Fenster kann geschlossen werden."
+    T_ACCESSIBILITY="  → Bedienungshilfen erlauben, wenn gefragt"
+    T_BOOKMARK="  → URL als Lesezeichen auf dem Handy speichern:"
+    T_CLIPBOARD="      (bereits in der Zwischenablage)"
+    T_DONE="  Fertig."
 else
-    T_TITLE="  MediaKeyControl  Installer"
-    T_NOT_BUILT="  App not built yet — running build.sh first..."
+    T_TITLE="MediaKeyControl  Installer"
+    T_FETCHING="  Fetching latest release..."
+    T_DOWNLOADING="  Downloading"
     T_QUESTION="  Install MediaKeyControl to /Applications?"
     T_YES="    [Y]  Yes — install now  (recommended)"
-    T_NO="    [N]  No  — show manual steps"
-    T_PROMPT="  Your choice [Y/n]: "
+    T_NO="    [N]  No  — cancel"
     T_YES_KEYS="^[Yy]"
-    T_MANUAL="  To install manually, run these commands in Terminal:"
-    T_INSTALLING="  Installing to $DEST..."
+    T_PROMPT="  Your choice [Y/n]: "
+    T_ABORTED="  Aborted."
+    T_INSTALLING="  Installing to /Applications..."
     T_INSTALLED="  ✓  Installed."
     T_LAUNCHING="  Launching..."
-    T_WEBUI="  Web UI:"
-    T_CLIPBOARD="  (copied to clipboard — paste into your phone's browser)"
-    T_DONE="  Done. You can close this window."
+    T_ACCESSIBILITY="  → Grant Accessibility when prompted"
+    T_BOOKMARK="  → Bookmark this URL on your phone:"
+    T_CLIPBOARD="      (already copied to clipboard)"
+    T_DONE="  Done."
 fi
 
+# ── Header ────────────────────────────────────────────────────────────────────
 echo ""
 echo "  ╔══════════════════════════════════════╗"
 echo "  ║  $T_TITLE  ║"
 echo "  ╚══════════════════════════════════════╝"
 echo ""
 
-# ── Build if not already built ────────────────────────────────────────────────
-if [[ ! -d "$APP" ]]; then
-    echo "$T_NOT_BUILT"
-    "$DIR/build.sh"
-fi
+# ── Fetch latest release info ─────────────────────────────────────────────────
+echo "$T_FETCHING"
+LATEST_JSON=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")
+TAG=$(echo "$LATEST_JSON" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+ZIP_URL=$(echo "$LATEST_JSON" | grep '"browser_download_url"' | grep '\.zip"' | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/')
+echo "  $TAG"
+echo ""
 
 # ── Ask user ──────────────────────────────────────────────────────────────────
 echo "$T_QUESTION"
@@ -68,56 +74,27 @@ answer="${answer:-Y}"
 echo ""
 
 if [[ ! "$answer" =~ $T_YES_KEYS ]]; then
-    SUMMARY="$DIR/MediaKeyControl Info.txt"
-    if [[ "$PRIMARY_LANG" == "de" ]]; then
-        {
-            echo "MediaKeyControl - Manuelle Installation"
-            echo "======================================="
-            echo ""
-            echo "Diese Befehle im Terminal ausfuehren:"
-            echo ""
-            echo "   cp -r \"$APP\" /Applications/"
-            echo "   xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
-            echo "   open /Applications/$APP_NAME.app"
-            echo ""
-            echo "======================================="
-            echo "Web-Oberflaeche (nach dem Start):"
-            echo ""
-            echo "   http://$(scutil --get LocalHostName 2>/dev/null || hostname).local:8765"
-        } > "$SUMMARY"
-    else
-        {
-            echo "MediaKeyControl - Manual Installation"
-            echo "======================================="
-            echo ""
-            echo "Run these commands in Terminal:"
-            echo ""
-            echo "   cp -r \"$APP\" /Applications/"
-            echo "   xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
-            echo "   open /Applications/$APP_NAME.app"
-            echo ""
-            echo "======================================="
-            echo "Web UI (after launching):"
-            echo ""
-            echo "   http://$(scutil --get LocalHostName 2>/dev/null || hostname).local:8765"
-        } > "$SUMMARY"
-    fi
-    open "$SUMMARY"
-    (sleep 2 && osascript -e 'tell application "Terminal" to close front window') &
-    disown
+    echo "$T_ABORTED"
+    echo ""
     exit 0
 fi
 
+# ── Download ──────────────────────────────────────────────────────────────────
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+
+echo "$T_DOWNLOADING $TAG..."
+curl -fsSL "$ZIP_URL" -o "$TMP/release.zip"
+unzip -q "$TMP/release.zip" -d "$TMP/extracted"
+echo ""
+
 # ── Install ───────────────────────────────────────────────────────────────────
 echo "$T_INSTALLING"
-
 pkill -x "$APP_NAME" 2>/dev/null || true
 sleep 0.5
-
 rm -rf "$DEST"
-cp -r "$APP" "$DEST"
+cp -r "$TMP/extracted/$APP_NAME.app" "$DEST"
 xattr -dr com.apple.quarantine "$DEST" 2>/dev/null || true
-
 echo "$T_INSTALLED"
 echo ""
 
@@ -126,58 +103,18 @@ HOST=$(scutil --get LocalHostName 2>/dev/null || hostname)
 URL="http://${HOST}.local:8765"
 echo "$URL" | pbcopy
 
+# ── Launch ────────────────────────────────────────────────────────────────────
 echo "$T_LAUNCHING"
 open "$DEST"
+echo ""
 
-# ── Write summary file and open it ───────────────────────────────────────────
-SUMMARY="$DIR/MediaKeyControl Info.txt"
-if [[ "$PRIMARY_LANG" == "de" ]]; then
-    {
-        echo "MediaKeyControl - Installiert"
-        echo "======================================="
-        echo ""
-        echo "App:  /Applications/MediaKeyControl.app"
-        echo ""
-        echo "Web-Oberflaeche (URL als Lesezeichen speichern):"
-        echo ""
-        echo "   $URL"
-        echo ""
-        echo "   (bereits in der Zwischenablage)"
-        echo ""
-        echo "======================================="
-        echo "Erster Start:"
-        echo "  - Bedienungshilfen erlauben, wenn gefragt"
-        echo "  - URL auf dem Handy als Lesezeichen speichern"
-        echo "    oder zum Home-Bildschirm hinzufuegen"
-        echo ""
-        echo "Die App erscheint in der Menueleiste (Tastatur-Symbol)"
-    } > "$SUMMARY"
-else
-    {
-        echo "MediaKeyControl - Installed"
-        echo "======================================="
-        echo ""
-        echo "App:  /Applications/MediaKeyControl.app"
-        echo ""
-        echo "Web UI (bookmark this on your phone):"
-        echo ""
-        echo "   $URL"
-        echo ""
-        echo "   (already copied to clipboard)"
-        echo ""
-        echo "======================================="
-        echo "First launch:"
-        echo "  - Grant Accessibility when prompted"
-        echo "  - Bookmark the URL on your phone"
-        echo "    or add it to your Home Screen"
-        echo ""
-        echo "The app lives in your menu bar (keyboard icon)"
-    } > "$SUMMARY"
-fi
-
-open "$SUMMARY"
-
-# ── Self-close Terminal window (delay gives TextEdit time to open) ────────────
-(sleep 2 && osascript -e 'tell application "Terminal" to close front window') &
-disown
-exit 0
+# ── Summary ───────────────────────────────────────────────────────────────────
+echo "  ────────────────────────────────────────"
+echo "$T_ACCESSIBILITY"
+echo "$T_BOOKMARK"
+echo "      $URL"
+echo "$T_CLIPBOARD"
+echo "  ────────────────────────────────────────"
+echo ""
+echo "$T_DONE"
+echo ""
