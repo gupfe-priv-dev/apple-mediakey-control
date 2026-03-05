@@ -1,6 +1,6 @@
 # MediaKeyControl
 
-Control your Mac's media and brightness keys from any device on your local network — phone, tablet, or another computer — via a simple web UI in the browser.
+Control your Mac's media keys, volume, brightness, and navigate web players from any device on your local network — phone, tablet, or another computer — via a simple web UI. Works as an iPhone home screen app with offline support.
 
 <img src="icon_1024.png" width="96" alt="MediaKeyControl icon">
 
@@ -18,16 +18,19 @@ The installer downloads the latest release, installs to `/Applications`, removes
 
 Opens a password-protected web page (served locally at port 8765) with buttons for:
 
-| Section | Keys |
-|---------|------|
-| Display | F1 Dim · F2 Brighten |
+| Section | Controls |
+|---------|----------|
 | Media   | F7 Previous · F8 Play/Pause · F9 Next |
+| Navigate | Arrow keys ▲▼◀▶ + Enter (D-pad for web players) |
 | Volume  | F10 Mute · F11 Down · F12 Up |
+| Display (Advanced) | F1 Dim · F2 Brighten |
 | System (Advanced) | F3 Mission Control · F4 Launchpad · F5 Kbd Dim · F6 Kbd Brighten |
 
-Tap **Advanced** in the web UI to show the System row. Use **Show QR Code…** from the menu bar to open a native QR code panel — scan with your phone to open the web UI instantly.
+The UI is responsive — buttons stretch to fill the screen. Tap **Advanced** to show display/system controls. Use **⚙** for settings (connection URLs, password change) and **🔒** to lock.
 
-Add it to your iPhone home screen as a web app for quick access.
+**Save to iPhone home screen** for a native app experience with offline support — shows a "Server Offline" screen with retry when the Mac is unreachable instead of a browser error.
+
+Use **Show QR Code…** from the menu bar to scan and open the web UI instantly.
 Works with MacBook, iMac, or any Mac — with any keyboard attached.
 
 ## First run
@@ -55,7 +58,7 @@ Browser (iOS/other device)
           → CGEventPost (NX key events)
 ```
 
-Volume and mute use AppleScript (`set volume`) and require no special permissions. Brightness and media keys require Accessibility because they synthesise system-level key events via `CGEventPost`.
+Volume and mute use AppleScript (`set volume`) and require no special permissions. Brightness, media keys, and navigation (arrow keys/Enter) require Accessibility because they synthesise system-level key events via `CGEventPost`.
 
 ## Build from source
 
@@ -83,11 +86,9 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 | Version | Notes |
 |---------|-------|
 | 1.0.7 | Universal server binary (arm64 + x86_64), accessibility prompt fallback for macOS 13+ |
-| 1.0.6 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
-| 0.0.1 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
-| 0.0.1 | **QR Code** — native menu bar panel (no dependencies), scan to open on any device. **Advanced mode** — F3–F6 keys: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required on target machine. **Universal binary** — arm64 + x86_64, macOS 10.15+. **Fixes** — play/pause icon, Accessibility TCC identity persists across updates. |
+| 1.0.6 | **QR Code** — native menu bar panel, scan to open. **Advanced mode** — F3–F6: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required. **Universal binary** — arm64 + x86_64, macOS 10.15+. |
 | 1.0.5 | curl-based installer, SVG icons, app icon, favicon, iOS home screen icon |
-| 1.0.4 | added: release files |
-| 1.0.3 | First Release |
+| 1.0.4 | Release files |
+| 1.0.3 | First release |
 | 1.0.1 | Remove auto-launch, fix startup thread safety, git-tag versioning |
 | 1.0.0 | Initial release — Unix socket IPC, Accessibility prompt, port conflict handling |
