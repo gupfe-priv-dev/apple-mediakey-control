@@ -85,6 +85,7 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
+| 1.1.0 | **D-pad Navigation** — arrow keys ▲▼◀▶ + Enter for web player control (YouTube, Netflix, etc.). **Offline PWA** — save to iPhone home screen; shows "Server Offline" overlay with retry when Mac is unreachable. **Responsive UI** — buttons stretch to fill the screen, no scrolling. **Settings page** — connection URLs and password change via ⚙ icon. **Cleaner layout** — Display/System moved to Advanced; header with SVG icons. |
 | 1.0.7 | Universal server binary (arm64 + x86_64), accessibility prompt fallback for macOS 13+ |
 | 1.0.6 | **QR Code** — native menu bar panel, scan to open. **Advanced mode** — F3–F6: Mission Control, Launchpad, keyboard brightness. **Bundled server** — no Python required. **Universal binary** — arm64 + x86_64, macOS 10.15+. |
 | 1.0.5 | curl-based installer, SVG icons, app icon, favicon, iOS home screen icon |
