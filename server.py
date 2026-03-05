@@ -130,6 +130,9 @@ def _open_app(name: str):
     subprocess.Popen(["open", "-a", name],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+def _keycode(code: int):
+    _osa(f'tell application "System Events" to key code {code}')
+
 _ACTIONS = {
     # AppleScript — no Accessibility needed
     "volume_up":         _vol_up,
@@ -141,6 +144,12 @@ _ACTIONS = {
     "prev_track":        lambda: _nx(_NX_PREV),
     "play_pause":        lambda: _nx(_NX_PLAY),
     "next_track":        lambda: _nx(_NX_NEXT),
+    # Navigation — arrow keys + enter (AppleScript, needs Accessibility)
+    "nav_up":            lambda: _keycode(126),
+    "nav_down":          lambda: _keycode(125),
+    "nav_left":          lambda: _keycode(123),
+    "nav_right":         lambda: _keycode(124),
+    "nav_ok":            lambda: _keycode(36),
     # Advanced — keyboard brightness (NX, needs Accessibility)
     "kbd_bright_up":     lambda: _nx(_NX_KBD_UP),
     "kbd_bright_down":   lambda: _nx(_NX_KBD_DOWN),
@@ -496,10 +505,35 @@ button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
 .c-vol button                { background: rgba(255,69,58,.13); }
 .c-vol button:active,
 .c-vol button.tap            { background: rgba(255,69,58,.35); }
+.c-nav button                { background: rgba(255,214,10,.13); }
+.c-nav button:active,
+.c-nav button.tap            { background: rgba(255,214,10,.38); }
+.c-nav .dpad-ok              { background: rgba(255,214,10,.28); }
+.c-nav .dpad-ok:active,
+.c-nav .dpad-ok.tap          { background: rgba(255,214,10,.52); }
+.dpad {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
+  gap: 8px; max-width: 260px; margin: 0 auto; width: 100%;
+}
+.dpad button { min-height: 64px; padding: 12px 8px; }
+.dpad-up    { grid-column: 2; grid-row: 1; }
+.dpad-left  { grid-column: 1; grid-row: 2; }
+.dpad-ok    { grid-column: 2; grid-row: 2; }
+.dpad-right { grid-column: 3; grid-row: 2; }
+.dpad-down  { grid-column: 2; grid-row: 3; }
 .c-adv button                { background: rgba(100,210,255,.12); }
 .c-adv button:active,
 .c-adv button.tap            { background: rgba(100,210,255,.35); }
 .adv-hidden { display: none; }
+#offline-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+}
+.offline-card {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  background: rgba(28,28,30,.98); border-radius: 22px; padding: 36px 28px;
+  max-width: 300px; width: 90%; text-align: center;
+}
 footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction: column; gap: 3px; }
 .bm-label { font-size: 11px; color: rgba(235,235,245,.2); }
 .bm-link  { font-size: 13px; color: rgba(10,132,255,.45); text-decoration: none; word-break: break-all; }
@@ -521,6 +555,8 @@ footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction
 @media (max-height: 560px) {
   button { padding: 8px 6px; min-height: 58px; }
   .icon  { width: 22px; height: 22px; }
+  .dpad button { min-height: 50px; padding: 8px 6px; }
+  .dpad { gap: 5px; max-width: 220px; }
 }
 </style>
 </head>
@@ -568,6 +604,17 @@ footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction
     <button data-a="prev_track"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="2.5" height="14" rx="1.25"/><path d="M19.5 5L9.5 12l10 7V5z"/></svg><span class="sub">F7</span></button>
     <button data-a="play_pause" class="play"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4.5L13.5 12 5 19.5V4.5z"/><rect x="15.5" y="4.5" width="2.5" height="15" rx="1.25"/><rect x="19.5" y="4.5" width="2.5" height="15" rx="1.25"/></svg><span class="sub">F8 · Play / Pause</span></button>
     <button data-a="next_track"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="17.5" y="5" width="2.5" height="14" rx="1.25"/><path d="M4.5 5l10 7-10 7V5z"/></svg><span class="sub">F9</span></button>
+  </div>
+</div>
+
+<div class="card c-nav">
+  <div class="card-label">Navigate</div>
+  <div class="dpad">
+    <button data-a="nav_up" class="dpad-up"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5l7 10H5z"/></svg></button>
+    <button data-a="nav_left" class="dpad-left"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12l10-7v14z"/></svg></button>
+    <button data-a="nav_ok" class="dpad-ok"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg></button>
+    <button data-a="nav_right" class="dpad-right"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12L9 5v14z"/></svg></button>
+    <button data-a="nav_down" class="dpad-down"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 19l7-10H5z"/></svg></button>
   </div>
 </div>
 
@@ -632,6 +679,33 @@ advToggle.addEventListener('click', e => {
 });
 syncStatus();
 setInterval(syncStatus, 4000);
+// Service worker + offline detection
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+let _offline = false;
+async function checkOnline() {
+  try {
+    const r = await fetch('/status');
+    if (!r.ok) throw 0;
+    if (_offline) { _offline = false; hideOffline(); }
+  } catch(_) {
+    if (!_offline) { _offline = true; showOffline(); }
+  }
+}
+function showOffline() {
+  if (document.getElementById('offline-overlay')) return;
+  const o = document.createElement('div');
+  o.id = 'offline-overlay';
+  o.innerHTML = '<div class="offline-card"><span style="font-size:40px;line-height:1">&#x1F50C;</span>'
+    + '<span style="font-size:18px;font-weight:700">Server Offline</span>'
+    + '<span style="font-size:14px;color:rgba(235,235,245,.55)">Waiting for MacBook server...</span>'
+    + '<button class="btn" onclick="location.reload()" style="width:auto;padding:12px 28px;font-size:15px">Retry</button></div>';
+  document.body.appendChild(o);
+}
+function hideOffline() {
+  const o = document.getElementById('offline-overlay');
+  if (o) o.remove();
+}
+setInterval(checkOnline, 3000);
 </script>
 </body>
 </html>
@@ -710,6 +784,40 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(_TOUCH_ICON_PNG)))
             self.end_headers()
             self.wfile.write(_TOUCH_ICON_PNG)
+            return
+
+        # ── Service worker (public) ───────────────────────────────────────────
+        if path == "/sw.js":
+            sw = """\
+const CACHE='mkc-v1';
+const PRECACHE=['/','/favicon.ico','/apple-touch-icon.png','/manifest.json'];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PRECACHE)));
+  self.skipWaiting();
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(ks=>Promise.all(
+    ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))
+  )).then(()=>self.clients.claim()));
+});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(
+    fetch(e.request).then(r=>{
+      const c=r.clone();
+      caches.open(CACHE).then(cache=>cache.put(e.request,c));
+      return r;
+    }).catch(()=>caches.match(e.request))
+  );
+});
+"""
+            body = sw.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Service-Worker-Allowed", "/")
+            self.end_headers()
+            self.wfile.write(body)
             return
 
         # ── Web app manifest (public) ─────────────────────────────────────────
