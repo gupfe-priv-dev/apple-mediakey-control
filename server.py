@@ -131,7 +131,20 @@ def _open_app(name: str):
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def _keycode(code: int):
-    _osa(f'tell application "System Events" to key code {code}')
+    """Send a keyboard event via CGEvent — doesn't steal focus."""
+    import ctypes, ctypes.util
+    cg = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreGraphics"))
+    cg.CGEventCreateKeyboardEvent.restype = ctypes.c_void_p
+    cg.CGEventCreateKeyboardEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint16, ctypes.c_bool]
+    cg.CGEventPost.argtypes = [ctypes.c_uint32, ctypes.c_void_p]
+    cf = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreFoundation"))
+    cf.CFRelease.argtypes = [ctypes.c_void_p]
+    dn = cg.CGEventCreateKeyboardEvent(None, code, True)
+    up = cg.CGEventCreateKeyboardEvent(None, code, False)
+    cg.CGEventPost(0, dn)   # kCGHIDEventTap
+    cg.CGEventPost(0, up)
+    cf.CFRelease(dn)
+    cf.CFRelease(up)
 
 _ACTIONS = {
     # AppleScript — no Accessibility needed
@@ -427,6 +440,37 @@ _CHANGE_PW_HTML = f"""<!DOCTYPE html>
 </body>
 </html>"""
 
+_SETTINGS_HTML = f"""<!DOCTYPE html>
+<html lang="en">
+<head>{_META}
+<title>Settings</title>
+<style>{_COMMON_CSS}
+.back {{ font-size: 14px; color: rgba(10,132,255,.9); text-decoration: none; align-self: flex-start; }}
+.section {{ font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: rgba(235,235,245,.48); margin-top: 8px; }}
+.info-row {{ display: flex; flex-direction: column; gap: 4px; width: 100%; }}
+.info-label {{ font-size: 12px; color: rgba(235,235,245,.4); }}
+.info-value {{ font-size: 14px; color: rgba(10,132,255,.8); word-break: break-all; text-decoration: none; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <a class="back" href="/">← Back</a>
+  <span class="title">Settings</span>
+  <span class="section">Connection</span>
+  <div class="info-row">
+    <span class="info-label">Bonjour URL</span>
+    <a class="info-value" href="__BM_URL__">__BM_URL__</a>
+  </div>
+  <div class="info-row">
+    <span class="info-label">IP URL</span>
+    <a class="info-value" href="__IP_URL__">__IP_URL__</a>
+  </div>
+  <span class="section" style="margin-top:14px">Account</span>
+  <a class="btn-ghost" href="/change-password" style="text-align:center">Change Password</a>
+</div>
+</body>
+</html>"""
+
 _MAIN_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -444,49 +488,52 @@ _MAIN_HTML = """<!DOCTYPE html>
 :root {
   --bg:     #000; --card: rgba(28,28,30,.98); --btn: rgba(58,58,60,.9);
   --btn-on: rgba(99,99,102,1); --text: #fff; --dim: rgba(235,235,245,.48);
-  --r-card: 20px; --r-btn: 14px;
+  --r-card: 16px; --r-btn: 12px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { background: var(--bg); }
+html { background: var(--bg); height: 100%; }
 body {
   background: var(--bg); color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   min-height: 100dvh;
-  padding: max(env(safe-area-inset-top),20px) 16px max(env(safe-area-inset-bottom),24px);
-  display: flex; flex-direction: column; gap: 10px;
+  padding: max(env(safe-area-inset-top),10px) 14px max(env(safe-area-inset-bottom),10px);
+  display: flex; flex-direction: column; gap: 6px;
   max-width: 430px; margin: 0 auto;
 }
-header { padding: 4px 4px 2px; }
-.hrow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+header { padding: 4px 4px 2px; flex-shrink: 0; }
+.hrow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
 .hlinks { display: flex; gap: 2px; }
 .hlink {
-  font-size: 13px; color: rgba(10,132,255,.9); text-decoration: none;
-  font-weight: 500; padding: 4px 8px; border-radius: 8px;
+  color: rgba(10,132,255,.9); text-decoration: none;
+  padding: 6px; border-radius: 8px; display: flex; align-items: center;
   -webkit-tap-highlight-color: transparent;
 }
 .hlink:active { background: rgba(10,132,255,.15); }
+.hlink-text { font-size: 13px; font-weight: 500; }
 .vol-row { display: flex; align-items: center; gap: 8px; }
 #vol-pct { font-size: 13px; font-weight: 600; color: var(--dim); min-width: 36px; text-align: right; }
 .vol-track { flex: 1; background: rgba(255,255,255,.12); border-radius: 99px; height: 5px; overflow: hidden; }
 #vol-fill { height: 100%; background: #fff; border-radius: 99px; width: 50%; transition: width .35s ease, background .3s; }
 #vol-fill.muted { background: rgba(255,255,255,.28); }
-.card { background: var(--card); border-radius: var(--r-card); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--card); border-radius: var(--r-card); padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; }
 .card-label { font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--dim); }
-.row { display: grid; gap: 8px; }
-.row-2 { grid-template-columns: 1fr 1fr; }
-.row-3 { grid-template-columns: 1fr 2fr 1fr; }
+.row { display: grid; gap: 6px; flex: 1 1 auto; align-content: stretch; }
+.row-2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+.row-3 { grid-template-columns: 1fr 2fr 1fr; grid-template-rows: 1fr; }
 button {
   all: unset; background: var(--btn); border-radius: var(--r-btn); cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; padding: 18px 8px; min-height: 84px; text-align: center;
+  gap: 4px; padding: 10px 8px; min-height: 44px; text-align: center;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   transition: background 80ms ease, transform 80ms ease;
   user-select: none; -webkit-user-select: none; will-change: transform;
+  flex: 1;
 }
 button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
 .icon { width: 30px; height: 30px; display: block; pointer-events: none; }
-.sub  { font-size: 11px; color: var(--dim); line-height: 1.3; pointer-events: none; }
+.sub  { font-size: 11px; color: var(--dim); line-height: 1.3; pointer-events: none; display: none; }
+@media (min-height: 750px) { .sub { display: block; } }
 .c-display button            { background: rgba(255,159,10,.15); }
 .c-display button:active,
 .c-display button.tap        { background: rgba(255,159,10,.42); }
@@ -511,11 +558,12 @@ button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
 .c-nav .dpad-ok              { background: rgba(255,214,10,.28); }
 .c-nav .dpad-ok:active,
 .c-nav .dpad-ok.tap          { background: rgba(255,214,10,.52); }
+.c-nav { flex: 2 1 auto; }
 .dpad {
   display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
-  gap: 8px; max-width: 260px; margin: 0 auto; width: 100%;
+  gap: 6px; max-width: 260px; margin: 0 auto; width: 100%; flex: 1 1 auto;
 }
-.dpad button { min-height: 64px; padding: 12px 8px; }
+.dpad button { padding: 8px; min-height: 44px; }
 .dpad-up    { grid-column: 2; grid-row: 1; }
 .dpad-left  { grid-column: 1; grid-row: 2; }
 .dpad-ok    { grid-column: 2; grid-row: 2; }
@@ -525,6 +573,7 @@ button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
 .c-adv button:active,
 .c-adv button.tap            { background: rgba(100,210,255,.35); }
 .adv-hidden { display: none; }
+.adv-link { font-size: 13px; color: rgba(10,132,255,.9); text-decoration: none; text-align: center; padding: 4px; }
 #offline-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 100;
   display: flex; align-items: center; justify-content: center;
@@ -534,29 +583,22 @@ button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
   background: rgba(28,28,30,.98); border-radius: 22px; padding: 36px 28px;
   max-width: 300px; width: 90%; text-align: center;
 }
-footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction: column; gap: 3px; }
+footer { text-align: center; padding: 4px 4px 2px; display: flex; flex-direction: column; gap: 2px; flex: 0 0 auto; }
 .bm-label { font-size: 11px; color: rgba(235,235,245,.2); }
 .bm-link  { font-size: 13px; color: rgba(10,132,255,.45); text-decoration: none; word-break: break-all; }
 
 /* ── Compact layout for small screens (iPhone SE / 8) ── */
 @media (max-height: 650px) {
-  body   { gap: 7px; padding-top: max(env(safe-area-inset-top),12px); padding-bottom: max(env(safe-area-inset-bottom),14px); }
+  body   { gap: 5px; padding-top: max(env(safe-area-inset-top),8px); padding-bottom: max(env(safe-area-inset-bottom),8px); }
   header h1 { font-size: 18px; }
-  .hrow  { margin-bottom: 7px; }
-  .card  { padding: 10px; gap: 7px; }
-  .row   { gap: 6px; }
-  button { padding: 11px 6px; min-height: 68px; gap: 3px; }
-  .icon  { width: 26px; height: 26px; }
+  .hrow  { margin-bottom: 5px; }
+  .card  { padding: 8px 10px; gap: 4px; }
+  button { padding: 6px 6px; gap: 2px; }
+  .icon  { width: 24px; height: 24px; }
   .sub   { font-size: 10px; }
-  footer { padding: 4px 4px 2px; }
   .bm-label { display: none; }
   .bm-link  { font-size: 11px; }
-}
-@media (max-height: 560px) {
-  button { padding: 8px 6px; min-height: 58px; }
-  .icon  { width: 22px; height: 22px; }
-  .dpad button { min-height: 50px; padding: 8px 6px; }
-  .dpad { gap: 5px; max-width: 220px; }
+  .dpad { gap: 4px; max-width: 220px; }
 }
 </style>
 </head>
@@ -564,11 +606,11 @@ footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction
 
 <header>
   <div class="hrow">
-    <h1>MacBook Controls</h1>
+    <h1 style="font-size:18px">Remote</h1>
     <div class="hlinks">
-      <a class="hlink" id="adv-toggle" href="#">Advanced</a>
-      <a class="hlink" href="/change-password">Password</a>
-      <a class="hlink" href="/logout">Lock</a>
+      <a class="hlink hlink-text" id="adv-toggle" href="#">Advanced</a>
+      <a class="hlink" href="/settings" title="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+      <a class="hlink" href="/logout" title="Lock"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></a>
     </div>
   </div>
   <div class="vol-row">
@@ -578,24 +620,23 @@ footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction
   </div>
 </header>
 
-<div class="card c-display">
+<div class="card c-adv adv-hidden" id="adv-card">
   <div class="card-label">Display</div>
   <div class="row row-2">
     <button data-a="brightness_down"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 3.5V5M12 19v1.5M5.22 5.22l1.06 1.06M17.72 17.72l1.06 1.06M3.5 12H5M19 12h1.5M5.22 18.78l1.06-1.06M17.72 6.28l1.06-1.06"/></svg><span class="sub">F1 · Dim</span></button>
     <button data-a="brightness_up">  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 2V4M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="sub">F2 · Bright</span></button>
   </div>
-</div>
-
-<div class="card c-adv adv-hidden" id="adv-card">
-  <div class="card-label">System</div>
+  <div class="card-label" style="margin-top:4px">System</div>
   <div class="row row-2">
     <button data-a="mission_control"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="7" rx="1.5"/><rect x="13" y="3" width="9" height="7" rx="1.5"/><rect x="2" y="14" width="9" height="7" rx="1.5"/><rect x="13" y="14" width="9" height="7" rx="1.5"/></svg><span class="sub">F3 · Mission Control</span></button>
     <button data-a="launchpad"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="6" cy="6" r="2.5"/><circle cx="12" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="12" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/></svg><span class="sub">F4 · Launchpad</span></button>
   </div>
+  <div class="card-label" style="margin-top:4px">Keyboard</div>
   <div class="row row-2">
     <button data-a="kbd_bright_down"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 14V9M10 14V7M14 14V7M18 14V9"/><path d="M7 4h2M15 4h2M11 3v2"/></svg><span class="sub">F5 · Kbd Dim</span></button>
     <button data-a="kbd_bright_up"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 14V9M10 14V7M14 14V7M18 14V9"/><path d="M7 4h2M15 4h2M11 2v3"/></svg><span class="sub">F6 · Kbd Bright</span></button>
   </div>
+
 </div>
 
 <div class="card c-media">
@@ -628,9 +669,7 @@ footer { text-align: center; padding: 8px 4px 4px; display: flex; flex-direction
 </div>
 
 <footer>
-  <span class="bm-label">Add to Home Screen — tap &amp; hold to copy:</span>
   <a class="bm-link" href="__SERVER_URL__">__SERVER_URL__</a>
-  <span class="bm-label" style="margin-top:2px">or via IP: <a class="bm-link" style="font-size:11px;opacity:.7" href="__SERVER_IP__">__SERVER_IP__</a></span>
 </footer>
 
 <script>
@@ -789,7 +828,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         # ── Service worker (public) ───────────────────────────────────────────
         if path == "/sw.js":
             sw = """\
-const CACHE='mkc-v1';
+const CACHE='mkc-v12';
 const PRECACHE=['/','/favicon.ico','/apple-touch-icon.png','/manifest.json'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PRECACHE)));
@@ -876,6 +915,12 @@ self.addEventListener('fetch',e=>{
             html = (_MAIN_HTML
                     .replace("__SERVER_URL__", _BM_URL)
                     .replace("__SERVER_IP__", _IP_URL))
+            self._send_html(html)
+
+        elif path == "/settings":
+            html = (_SETTINGS_HTML
+                    .replace("__BM_URL__", _BM_URL)
+                    .replace("__IP_URL__", _IP_URL))
             self._send_html(html)
 
         elif path == "/change-password":
