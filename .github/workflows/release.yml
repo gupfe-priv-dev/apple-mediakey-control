@@ -15,7 +15,7 @@ on:
 
 jobs:
   release:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -26,11 +26,6 @@ jobs:
 
       - name: Fetch all tags
         run: git fetch --tags --force
-
-      - name: Set up universal2 Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
 
       - name: Compute next version
         id: ver
@@ -57,14 +52,6 @@ jobs:
             { print }
           ' README.md > README.tmp && mv README.tmp README.md
 
-      - name: Build app
-        run: VERSION="${{ steps.ver.outputs.version }}" ./build.sh
-
-      - name: Package zip
-        run: |
-          zip -r MediaKeyControl.zip MediaKeyControl.app
-          echo "Zip size: $(du -sh MediaKeyControl.zip | cut -f1)"
-
       - name: Commit, tag, push
         run: |
           git config user.name  "Gunnar Budach"
@@ -80,5 +67,7 @@ jobs:
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: ${{ steps.ver.outputs.tag }}
-          body: ${{ inputs.notes }}
-          files: MediaKeyControl.zip
+          body: |
+            ${{ inputs.notes }}
+
+            Asset will be uploaded separately via `./release-asset.sh`.
