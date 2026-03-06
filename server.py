@@ -516,7 +516,7 @@ header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
 .vol-track { flex: 1; background: rgba(255,255,255,.12); border-radius: 99px; height: 5px; overflow: hidden; }
 #vol-fill { height: 100%; background: #fff; border-radius: 99px; width: 50%; transition: width .35s ease, background .3s; }
 #vol-fill.muted { background: rgba(255,255,255,.28); }
-.card { background: var(--card); border-radius: var(--r-card); padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; }
+.card { background: var(--card); border-radius: var(--r-card); padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; max-height: 150px; }
 .card-label { font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--dim); }
 .row { display: grid; gap: 6px; flex: 1 1 auto; align-content: stretch; }
 .row-2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
@@ -524,7 +524,7 @@ header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
 button {
   all: unset; background: var(--btn); border-radius: var(--r-btn); cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; padding: 10px 8px; min-height: 44px; text-align: center;
+  gap: 4px; padding: 10px 8px; min-height: 44px; max-height: 100px; text-align: center;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   transition: background 80ms ease, transform 80ms ease;
   user-select: none; -webkit-user-select: none; will-change: transform;
@@ -558,12 +558,12 @@ button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
 .c-nav .dpad-ok              { background: rgba(255,214,10,.28); }
 .c-nav .dpad-ok:active,
 .c-nav .dpad-ok.tap          { background: rgba(255,214,10,.52); }
-.c-nav { flex: 2 1 auto; }
+.c-nav { flex: 2 1 auto; max-height: 300px; }
 .dpad {
   display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
   gap: 6px; max-width: 260px; margin: 0 auto; width: 100%; flex: 1 1 auto;
 }
-.dpad button { padding: 8px; min-height: 44px; }
+.dpad button { padding: 8px; min-height: 44px; max-height: 75px; }
 .dpad-up    { grid-column: 2; grid-row: 1; }
 .dpad-left  { grid-column: 1; grid-row: 2; }
 .dpad-ok    { grid-column: 2; grid-row: 2; }
@@ -639,6 +639,15 @@ footer { text-align: center; padding: 4px 4px 2px; display: flex; flex-direction
 
 </div>
 
+<div class="card c-vol">
+  <div class="card-label">Volume</div>
+  <div class="row row-3">
+    <button data-a="mute">      <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M17 9l6 6M23 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg><span class="sub">F10 · Mute</span></button>
+    <button data-a="volume_down"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg><span class="sub">F11 · Down</span></button>
+    <button data-a="volume_up">  <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg><span class="sub">F12 · Up</span></button>
+  </div>
+</div>
+
 <div class="card c-media">
   <div class="card-label">Media</div>
   <div class="row row-3">
@@ -656,15 +665,6 @@ footer { text-align: center; padding: 4px 4px 2px; display: flex; flex-direction
     <button data-a="nav_ok" class="dpad-ok"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg></button>
     <button data-a="nav_right" class="dpad-right"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12L9 5v14z"/></svg></button>
     <button data-a="nav_down" class="dpad-down"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 19l7-10H5z"/></svg></button>
-  </div>
-</div>
-
-<div class="card c-vol">
-  <div class="card-label">Volume</div>
-  <div class="row row-3">
-    <button data-a="mute">      <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M17 9l6 6M23 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg><span class="sub">F10 · Mute</span></button>
-    <button data-a="volume_down"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg><span class="sub">F11 · Down</span></button>
-    <button data-a="volume_up">  <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg><span class="sub">F12 · Up</span></button>
   </div>
 </div>
 
