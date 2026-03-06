@@ -85,6 +85,7 @@ In this mode, key events fall back to a compiled Swift binary (`mediakey`). Gran
 
 | Version | Notes |
 |---------|-------|
+| 1.1.3 | **Fix:** Navigation keys (arrow keys, Enter) now route through the app process — only one Accessibility grant needed, no prompt when pressing nav buttons remotely. Added server startup logging. |
 | 1.1.2 | **Fixes:** Advanced mode layout overlap on iPhone. Accessibility menu now reliably opens System Settings (macOS 13+). Capped button/card height on large screens. Reordered sections: Volume → Media → Navigate. |
 | 1.1.1 | Section reorder (Volume → Media → Navigate), capped button/card height on large screens, fixed parent-watchdog crash in standalone mode. |
 | 1.1.0 | **D-pad Navigation** — arrow keys ▲▼◀▶ + Enter for web player control (YouTube, Netflix, etc.). **Offline PWA** — save to iPhone home screen; shows "Server Offline" overlay with retry when Mac is unreachable. **Responsive UI** — buttons stretch to fill the screen, no scrolling. **Settings page** — connection URLs and password change via ⚙ icon. **Cleaner layout** — Display/System moved to Advanced; header with SVG icons. |
