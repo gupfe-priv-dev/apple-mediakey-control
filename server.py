@@ -569,6 +569,7 @@ button:active, button.tap { background: var(--btn-on); transform: scale(0.92); }
 .dpad-ok    { grid-column: 2; grid-row: 2; }
 .dpad-right { grid-column: 3; grid-row: 2; }
 .dpad-down  { grid-column: 2; grid-row: 3; }
+.c-adv { max-height: none; flex: 0 0 auto; }
 .c-adv button                { background: rgba(100,210,255,.12); }
 .c-adv button:active,
 .c-adv button.tap            { background: rgba(100,210,255,.35); }

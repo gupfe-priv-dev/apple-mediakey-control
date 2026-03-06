@@ -86,30 +86,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
 
-    // ── "Grant Accessibility…" menu item: explicit reset + re-prompt ──────────
-    // Only reset stale TCC entries when the user asks for it explicitly.
+    // ── "Grant Accessibility…" menu item ────────────────────────────────────────
     @objc func grantAccessibility() {
-        DispatchQueue.global().async {
-            let reset = Process()
-            reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
-            reset.arguments = ["reset", "Accessibility", "com.gunnar.mediakeycontrol"]
-            reset.standardOutput = Pipe(); reset.standardError = Pipe()
-            try? reset.run(); reset.waitUntilExit()
-            DispatchQueue.main.async {
-                let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-                AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
-                // Fallback: on macOS 13+ the prompt may not open System Settings
-                // reliably — open the Accessibility pane explicitly after a delay.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if !AXIsProcessTrusted() { self.openAccessibilitySettings() }
-                }
-            }
+        // Try the API prompt first
+        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+        // Always open System Settings — the API prompt alone is unreliable on macOS 13+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.openAccessibilitySettings()
         }
     }
 
     func openAccessibilitySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
+        // macOS 13+ uses the new Settings URL scheme
+        let urls = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility"
+        ]
+        for s in urls {
+            if let url = URL(string: s) {
+                NSWorkspace.shared.open(url)
+                return
+            }
         }
     }
 
