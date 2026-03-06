@@ -60,7 +60,13 @@ echo "$T_FETCHING"
 LATEST_JSON=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")
 TAG=$(echo "$LATEST_JSON" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
 ZIP_URL=$(echo "$LATEST_JSON" | grep '"browser_download_url"' | grep '\.zip"' | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/')
+NOTES=$(echo "$LATEST_JSON" | sed -n 's/.*"body": *"\(.*\)".*/\1/p' | sed 's/\\r\\n/\n/g; s/\\n/\n/g; s/\*\*//g')
 echo "  $TAG"
+if [[ -n "$NOTES" ]]; then
+    echo ""
+    if [[ "$PRIMARY_LANG" == "de" ]]; then echo "  Neuerungen:"; else echo "  What's new:"; fi
+    echo "$NOTES" | while IFS= read -r line; do [[ -n "$line" ]] && echo "    $line"; done
+fi
 echo ""
 
 # ── Ask user ──────────────────────────────────────────────────────────────────
