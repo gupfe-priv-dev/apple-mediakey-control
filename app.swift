@@ -51,6 +51,15 @@ func sendNXKey(_ keyType: Int) {
     }
 }
 
+func sendKeycode(_ code: UInt16) {
+    guard let dn = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true),
+          let up = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: false) else { return }
+    dn.post(tap: .cgSessionEventTap)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+        up.post(tap: .cgSessionEventTap)
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var serverProcess: Process?
@@ -140,7 +149,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard n > 0 else { continue }
                 let msg = String(bytes: buf[0..<n], encoding: .utf8)?
                     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                if let keyType = Int(msg) {
+                if msg.hasPrefix("k"), let code = UInt16(msg.dropFirst()) {
+                    // Keycode event (arrow keys, enter, etc.)
+                    DispatchQueue.main.async { sendKeycode(code) }
+                } else if let keyType = Int(msg) {
                     DispatchQueue.main.async { sendNXKey(keyType) }
                 }
             }
@@ -216,7 +228,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             serverProcess!.standardOutput = fh
             serverProcess!.standardError  = fh
         }
-        try? serverProcess!.run()
+        do {
+            try serverProcess!.run()
+            mklog("server started — PID \(serverProcess!.processIdentifier)")
+        } catch {
+            mklog("server failed to start: \(error)")
+        }
         DispatchQueue.global().asyncAfter(deadline: .now() + 0.8) {
             let host = self.bonjourHostname()
             let url  = "http://\(host):\(PORT)"

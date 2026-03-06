@@ -131,7 +131,18 @@ def _open_app(name: str):
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def _keycode(code: int):
-    """Send a keyboard event via CGEvent — doesn't steal focus."""
+    """Send a keyboard event via the app's Unix socket (uses app's Accessibility grant)."""
+    try:
+        import socket as _socket
+        sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        sock.connect(_SOCK_PATH)
+        sock.send(f"k{code}".encode())
+        sock.close()
+        return
+    except Exception:
+        pass
+    # Standalone fallback: direct CGEvent (needs own Accessibility grant)
     import ctypes, ctypes.util
     cg = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreGraphics"))
     cg.CGEventCreateKeyboardEvent.restype = ctypes.c_void_p
@@ -141,7 +152,7 @@ def _keycode(code: int):
     cf.CFRelease.argtypes = [ctypes.c_void_p]
     dn = cg.CGEventCreateKeyboardEvent(None, code, True)
     up = cg.CGEventCreateKeyboardEvent(None, code, False)
-    cg.CGEventPost(0, dn)   # kCGHIDEventTap
+    cg.CGEventPost(0, dn)
     cg.CGEventPost(0, up)
     cf.CFRelease(dn)
     cf.CFRelease(up)
